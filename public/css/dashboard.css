@@ -95,6 +95,256 @@ select:focus-visible,
 
 svg { display: block; }
 
+/* === BOOT LOADER === */
+body.is-booting .navbar,
+body.is-booting .main-content,
+body.is-booting .modal-overlay {
+  visibility: hidden;
+}
+
+.boot-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #050505;
+  color: var(--text-primary);
+  transition: opacity 0.55s ease, visibility 0.55s ease;
+}
+
+.boot-loader.is-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boot-loader.is-hidden {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.boot-loader__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  opacity: 0.55;
+}
+
+.boot-loader__glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(220, 38, 38, 0.14) 0%, transparent 68%);
+  pointer-events: none;
+  animation: boot-glow-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes boot-glow-pulse {
+  0%, 100% { transform: scale(0.92); opacity: 0.65; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+.boot-loader__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(360px, 88vw);
+  text-align: center;
+}
+
+.boot-loader__logo {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  color: var(--red-core);
+  margin-bottom: 18px;
+}
+
+.boot-logo-svg {
+  width: 72px;
+  height: 72px;
+  filter: drop-shadow(0 0 18px rgba(220, 38, 38, 0.35));
+  animation: boot-logo-float 2.8s ease-in-out infinite;
+}
+
+.boot-logo-shield {
+  animation: boot-shield-draw 1.2s ease forwards;
+}
+
+.boot-logo-reticle {
+  opacity: 0;
+  animation: boot-reticle-in 0.6s ease 0.45s forwards;
+}
+
+.boot-logo-dot {
+  opacity: 0;
+  animation: boot-dot-pulse 1.4s ease 0.7s infinite;
+}
+
+@keyframes boot-logo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes boot-shield-draw {
+  from { stroke-dasharray: 180; stroke-dashoffset: 180; opacity: 0.3; }
+  to { stroke-dasharray: 180; stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes boot-reticle-in {
+  from { opacity: 0; transform: scale(0.85); transform-origin: center; }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes boot-dot-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.boot-loader__scan {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.7), transparent);
+  animation: boot-scan 2.2s linear infinite;
+  opacity: 0.7;
+}
+
+@keyframes boot-scan {
+  0% { top: 8px; opacity: 0; }
+  12% { opacity: 0.75; }
+  88% { opacity: 0.75; }
+  100% { top: 64px; opacity: 0; }
+}
+
+.boot-loader__brand {
+  font-family: var(--font-brand);
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0 0 6px;
+}
+
+.boot-brand-bold {
+  font-weight: 700;
+  color: #f0f0f0;
+}
+
+.boot-brand-light {
+  font-weight: 300;
+  color: #9ca3af;
+}
+
+.boot-loader__tagline {
+  font-family: var(--font-brand);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.28);
+  margin: 0 0 28px;
+}
+
+.boot-loader__progress-track {
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.boot-loader__progress-bar {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #991b1b, #ef4444, #dc2626);
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.55);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.boot-loader__status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.42);
+  min-height: 14px;
+  margin: 0 0 22px;
+}
+
+.boot-loader.is-error .boot-loader__status {
+  color: #f87171;
+}
+
+.boot-loader__steps {
+  list-style: none;
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 0;
+  margin: 0;
+}
+
+.boot-loader__steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.18);
+  transition: color 0.25s ease;
+}
+
+.boot-step-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.boot-loader__steps li.is-active {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.boot-loader__steps li.is-active .boot-step-dot {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.65);
+  animation: boot-step-blink 1s ease-in-out infinite;
+}
+
+.boot-loader__steps li.is-done {
+  color: rgba(34, 197, 94, 0.75);
+}
+
+.boot-loader__steps li.is-done .boot-step-dot {
+  background: #22c55e;
+  box-shadow: none;
+}
+
+.boot-loader__steps li.is-error {
+  color: rgba(248, 113, 113, 0.85);
+}
+
+.boot-loader__steps li.is-error .boot-step-dot {
+  background: #ef4444;
+}
+
+@keyframes boot-step-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
 /* === NAVBAR === */
 .navbar {
   display: flex;

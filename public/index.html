@@ -4,17 +4,57 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ThreatVision Console</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/favicon.svg">
   <link rel="stylesheet" href="css/dashboard.css">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
-<body>
+<body class="is-booting">
+  <div id="bootLoader" class="boot-loader" aria-live="polite" aria-busy="true" aria-label="Carregando ThreatVision">
+    <div class="boot-loader__grid" aria-hidden="true"></div>
+    <div class="boot-loader__glow" aria-hidden="true"></div>
+
+    <div class="boot-loader__content">
+      <div class="boot-loader__logo" aria-hidden="true">
+        <svg class="boot-logo-svg" width="72" height="72" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path class="boot-logo-shield" d="M32 4L8 14v14c0 14 10 27 24 32 14-5 24-18 24-32V14L32 4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          <circle class="boot-logo-reticle" cx="32" cy="32" r="11" stroke="currentColor" stroke-width="1"/>
+          <path class="boot-logo-reticle" stroke="currentColor" stroke-width="1" stroke-linecap="round" d="M32 17v6M32 41v6M17 32h6M41 32h6"/>
+          <circle class="boot-logo-dot" cx="32" cy="32" r="2" fill="currentColor"/>
+        </svg>
+        <div class="boot-loader__scan" aria-hidden="true"></div>
+      </div>
+
+      <p class="boot-loader__brand">
+        <span class="boot-brand-bold">Threat</span><span class="boot-brand-light">Vision</span>
+      </p>
+      <p class="boot-loader__tagline">Tactical threat detection console</p>
+
+      <div class="boot-loader__progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="boot-loader__progress-bar" id="bootProgressBar"></div>
+      </div>
+
+      <p class="boot-loader__status" id="bootStatus">INICIALIZANDO CONSOLE...</p>
+
+      <ul class="boot-loader__steps" id="bootSteps" aria-hidden="true">
+        <li data-step="connect"><span class="boot-step-dot"></span>Console</li>
+        <li data-step="model"><span class="boot-step-dot"></span>Modelo YOLO</li>
+        <li data-step="cameras"><span class="boot-step-dot"></span>Câmeras</li>
+        <li data-step="ready"><span class="boot-step-dot"></span>Pronto</li>
+      </ul>
+    </div>
+  </div>
+
   <!-- NAVBAR TOPO -->
   <nav class="navbar">
     <div class="navbar-brand">
       <div class="brand-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 2L4 5.5V11c0 5.25 3.5 10.15 8 11.35C16.5 21.15 20 16.25 20 11V5.5L12 2z"/>
+        <svg width="16" height="16" viewBox="0 0 32 32" fill="none" stroke="currentColor" aria-hidden="true">
+          <path d="M16 3L6 7.5V14c0 6.5 4.3 12.6 10 14.35C21.7 26.6 26 20.5 26 14V7.5L16 3z" stroke-width="1.25" stroke-linejoin="round"/>
+          <circle cx="16" cy="15" r="4" stroke-width="1" opacity="0.85"/>
+          <path stroke-linecap="round" stroke-width="1" d="M16 9v2.5M16 18.5v2.5M11 15h2.5M18.5 15h2.5"/>
+          <circle cx="16" cy="15" r="1" fill="currentColor" stroke="none"/>
         </svg>
       </div>
       <span class="brand-wordmark">
@@ -569,5 +609,6 @@
   <script src="js/cctvOverlay.js"></script>
   <script src="js/videoFeed.js"></script>
   <script src="js/dashboard.js"></script>
+  <script src="js/boot.js"></script>
 </body>
 </html>

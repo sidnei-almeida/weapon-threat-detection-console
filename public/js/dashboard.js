@@ -508,7 +508,7 @@ window.Dashboard = (() => {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('⚠️ THREAT DETECTED', {
         body: `${detection.objectClass} - ${detection.zone}`,
-        icon: '/favicon.ico',
+        icon: '/favicon.svg',
       });
     }
 
@@ -756,7 +756,3 @@ window.Dashboard = (() => {
     syncStatusIndicator,
   };
 })();
-
-document.addEventListener('DOMContentLoaded', () => {
-  window.Dashboard.init();
-});

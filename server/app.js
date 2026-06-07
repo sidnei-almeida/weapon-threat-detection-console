@@ -230,17 +230,30 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/warmup', async (req, res) => {
+  try {
+    const result = await warmUpModel();
+    return res.json({
+      ready: true,
+      ...result,
+    });
+  } catch (error) {
+    log('ERROR', 'Warmup failed', { message: error.message });
+    return res.status(503).json({
+      ready: false,
+      error: error.message,
+    });
+  }
+});
+
 async function warmUpModel() {
   if (localYolo.isRoboflowConfigured() && process.env.DETECTION_BACKEND === 'roboflow') {
-    return;
+    return { backend: 'roboflow', ready: true };
   }
 
-  try {
-    await localYolo.getSession();
-    log('INFO', 'YOLO local pronto para inferência');
-  } catch (error) {
-    log('ERROR', 'Falha ao carregar YOLO local', { message: error.message });
-  }
+  await localYolo.getSession();
+  log('INFO', 'YOLO local pronto para inferência');
+  return { backend: 'yolo-local', ready: true };
 }
 
 module.exports = {

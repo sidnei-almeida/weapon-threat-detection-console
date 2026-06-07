@@ -31,5 +31,9 @@ io.on('connection', (socket) => {
 
 server.listen(PORT, async () => {
   log('INFO', `ThreatVision Server rodando na porta ${PORT}`);
-  await warmUpModel();
+  try {
+    await warmUpModel();
+  } catch (error) {
+    log('ERROR', 'Falha ao carregar YOLO local', { message: error.message });
+  }
 });
