@@ -2,7 +2,6 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const morgan = require('morgan');
 const multer = require('multer');
 const axios = require('axios');
@@ -79,9 +78,9 @@ function createApp(backend) {
     app.use(morgan('dev'));
   }
 
-  if (!process.env.VERCEL) {
-    app.use(express.static(path.join(__dirname, '../public')));
-  }
+  /* Static files are served by server/index.js locally and by Vercel CDN in production.
+     Do NOT add express.static('../public') here — @vercel/nft traces that path and
+     bundles videos/models into the serverless function (>250 MB). */
 
   app.post('/api/analyze', upload.single('image'), async (req, res) => {
     try {
