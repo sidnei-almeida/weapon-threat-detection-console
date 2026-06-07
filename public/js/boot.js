@@ -38,6 +38,12 @@ window.ThreatVisionBoot = (() => {
       label: 'Sincronizando câmeras...',
       progress: 88,
       run: async () => {
+        const staticResponse = await fetch('/cameras.json', { cache: 'no-store' });
+        if (staticResponse.ok) {
+          const data = await staticResponse.json();
+          if (data.cameras?.length) return data;
+        }
+
         const response = await fetch('/api/cameras');
         if (!response.ok) throw new Error('Falha ao listar câmeras');
         return response.json();

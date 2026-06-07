@@ -10,7 +10,8 @@
     "inspect:onnx": "node scripts/inspect-onnx-models.js",
     "test:image": "node scripts/test-image-inference.js",
     "test:threat": "node scripts/test-threat-batch.js",
-    "test:video": "node scripts/test-video-inference.js"
+    "test:video": "node scripts/test-video-inference.js",
+    "sync:cameras": "node scripts/sync-cameras-manifest.js"
   },
   "dependencies": {
     "axios": "^1.17.0",

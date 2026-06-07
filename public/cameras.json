@@ -1,0 +1,66 @@
+{
+  "cameras": [
+    {
+      "id": "CAM-01",
+      "number": "01",
+      "name": "CAM 01 – Demo Test Dataset",
+      "label": "Demo Test Dataset",
+      "zone": "Video Zone 01",
+      "videoUrl": "/videos/demo-test-dataset.mp4",
+      "filename": "demo-test-dataset.mp4",
+      "type": "video"
+    },
+    {
+      "id": "CAM-02",
+      "number": "02",
+      "name": "CAM 02 – Demo Zone B",
+      "label": "Demo Zone B",
+      "zone": "Video Zone 02",
+      "videoUrl": "/videos/demo-zone-b.mp4",
+      "filename": "demo-zone-b.mp4",
+      "type": "video"
+    },
+    {
+      "id": "CAM-03",
+      "number": "03",
+      "name": "CAM 03 – Demo Zone C",
+      "label": "Demo Zone C",
+      "zone": "Video Zone 03",
+      "videoUrl": "/videos/demo-zone-c.mp4",
+      "filename": "demo-zone-c.mp4",
+      "type": "video"
+    },
+    {
+      "id": "CAM-04",
+      "number": "04",
+      "name": "CAM 04 – Demo Zone D",
+      "label": "Demo Zone D",
+      "zone": "Video Zone 04",
+      "videoUrl": "/videos/demo-zone-d.mp4",
+      "filename": "demo-zone-d.mp4",
+      "type": "video"
+    },
+    {
+      "id": "CAM-05",
+      "number": "05",
+      "name": "CAM 05 – Demo Zone E",
+      "label": "Demo Zone E",
+      "zone": "Video Zone 05",
+      "videoUrl": "/videos/demo-zone-e.mp4",
+      "filename": "demo-zone-e.mp4",
+      "type": "video"
+    },
+    {
+      "id": "CAM-06",
+      "number": "06",
+      "name": "CAM 06 – Demo Zone F",
+      "label": "Demo Zone F",
+      "zone": "Video Zone 06",
+      "videoUrl": "/videos/demo-zone-f.mp4",
+      "filename": "demo-zone-f.mp4",
+      "type": "video"
+    }
+  ],
+  "total": 6,
+  "generatedAt": "2026-06-07T04:45:08.684Z"
+}

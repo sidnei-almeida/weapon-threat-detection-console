@@ -232,15 +232,26 @@ window.VideoFeed = (() => {
 
   async function loadCameras() {
     try {
-      const response = await fetch('/api/cameras');
-      if (!response.ok) throw new Error('Falha ao carregar câmeras');
+      let data = null;
 
-      const data = await response.json();
+      const staticResponse = await fetch('/cameras.json', { cache: 'no-store' });
+      if (staticResponse.ok) {
+        data = await staticResponse.json();
+      }
+
+      if (!data?.cameras?.length) {
+        const response = await fetch('/api/cameras');
+        if (!response.ok) throw new Error('Falha ao carregar câmeras');
+        data = await response.json();
+      }
+
       cameras = data.cameras || [];
       renderCameraDropdown();
 
       if (cameras.length > 0) {
         selectCamera(cameras[0].id, false);
+      } else if (cameraNameEl) {
+        cameraNameEl.textContent = 'Sem câmeras disponíveis';
       }
     } catch (error) {
       console.error('Camera load failed:', error.message);
