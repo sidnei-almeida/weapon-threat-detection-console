@@ -11,7 +11,8 @@
     "test:image": "node scripts/test-image-inference.js",
     "test:threat": "node scripts/test-threat-batch.js",
     "test:video": "node scripts/test-video-inference.js",
-    "sync:cameras": "node scripts/sync-cameras-manifest.js"
+    "sync:cameras": "node scripts/sync-cameras-manifest.js",
+    "optimize:videos": "bash scripts/optimize-videos.sh"
   },
   "dependencies": {
     "axios": "^1.17.0",
