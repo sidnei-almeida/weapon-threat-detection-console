@@ -3,7 +3,6 @@ const { loadModel } = require('../../src/yolo/loadModel');
 const { preprocessBuffer, TARGET_WIDTH, TARGET_HEIGHT } = require('../../src/yolo/preprocessImage');
 const { postprocessDetections, DEFAULT_CONFIDENCE_THRESHOLD } = require('../../src/yolo/postprocessDetections');
 const { processDetections } = require('./roboflow');
-const { isRoboflowConfigured } = require('./detectionConfig');
 const { log } = require('../utils/logger');
 
 let sessionPromise = null;
@@ -76,12 +75,7 @@ async function analyzeBufferLocal(imageBuffer, cameraId, zone, confidenceThresho
   };
 }
 
-function isRoboflowConfigured() {
-  return require('./detectionConfig').isRoboflowConfigured();
-}
-
 module.exports = {
   analyzeBufferLocal,
-  isRoboflowConfigured,
   getSession,
 };

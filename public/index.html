@@ -128,14 +128,14 @@
 
     <!-- COLUNA ESQUERDA -->
     <aside class="sidebar-left left-sidebar" data-sidebar="left">
-      <div class="sidebar-section camera-source-block">
+      <div class="sidebar-section camera-source-block camera-source-section" data-section="camera-source">
         <label class="section-label section-label-accent">CAMERA SOURCE</label>
         <div class="camera-selector-wrap">
           <div class="camera-selector" id="cameraSelector" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
             <span class="camera-name" id="cameraName">Loading cameras...</span>
             <svg class="camera-chevron icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <div class="camera-dropdown" id="cameraDropdown" hidden>
+          <div class="camera-dropdown tn-scroll" id="cameraDropdown" hidden>
             <ul class="camera-dropdown-list" id="cameraDropdownList" role="listbox"></ul>
           </div>
         </div>
@@ -369,10 +369,10 @@
     </aside>
 
     <!-- COLUNA CENTRAL -->
-    <section class="center-panel video-wrapper" data-component="video-area">
-      <div class="video-container">
+    <section class="center-panel" data-component="video-area">
+      <div class="video-container" data-component="video-wrapper">
         <div class="video-wrapper" id="videoWrapper">
-          <span class="video-datetime" id="videoDatetime">--/--/---- --:--:-- --</span>
+          <span class="video-datetime video-timestamp" id="videoDatetime">--/--/---- --:--:-- --</span>
           <span class="cam-label-pill">CAM <span id="camNumber">--</span></span>
           <button class="btn-icon fullscreen-btn" type="button" aria-label="Fullscreen">
             <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
@@ -420,26 +420,26 @@
             </div>
             <canvas id="detectionCanvas" class="detection-canvas"></canvas>
           </div>
-          <div class="video-placeholder" id="videoPlaceholder">
-            <div class="placeholder-icon">
+          <div class="video-placeholder video-empty-state" id="videoPlaceholder" data-component="empty-state">
+            <div class="placeholder-icon camera-icon">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                 <circle cx="12" cy="13" r="4"/>
               </svg>
             </div>
-            <p class="placeholder-primary">Awaiting camera feed</p>
-            <p class="placeholder-sub">Activate a camera or upload an image</p>
+            <p class="placeholder-primary primary-text">Awaiting camera feed</p>
+            <p class="placeholder-sub secondary-text">Activate a camera or upload an image</p>
           </div>
           <div class="detection-tooltip" id="detectionTooltip" style="display:none">
             <div class="tooltip-class" id="tooltipClass">Weapon: Handgun</div>
             <div class="tooltip-confidence" id="tooltipConfidence">Confidence: 94%</div>
           </div>
           <div class="high-risk-badge" id="highRiskBadge" style="display:none">HIGH RISK</div>
-          <div class="ai-inference-badge">● AI Inference</div>
+          <div class="ai-inference-badge" data-component="ai-badge">● AI Inference</div>
         </div>
 
-        <div class="video-controls">
-          <button class="btn-control btn-record" id="recordBtn" title="Gravar" type="button" aria-label="Gravar">
+        <div class="video-controls video-controls-bar" data-component="controls-bar">
+          <button class="btn-control btn-record" id="recordBtn" title="Record" type="button" aria-label="Record">
             <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="6"/></svg>
           </button>
           <button class="btn-control" id="playPauseBtn" title="Play/Pause" type="button" aria-label="Play/Pause">
@@ -452,19 +452,27 @@
             <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </button>
           <input type="file" id="frameFileInput" accept="image/*" hidden>
-          <select class="speed-select" id="zoomSelect" aria-label="Velocidade de zoom">
-            <option value="1.0">1.0x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2.0">2.0x</option>
-          </select>
-          <button class="btn-start-camera" id="startCameraBtn" type="button">
+          <div class="tn-select-wrap speed-select-wrap" id="zoomSelectWrap">
+            <button type="button" class="tn-select-trigger speed-select" id="zoomSelect" aria-haspopup="listbox" aria-expanded="false" aria-label="Zoom level">
+              <span class="tn-select-value" id="zoomSelectLabel">1.0x</span>
+              <svg class="tn-select-chevron icon-svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="tn-select-dropdown speed-select-dropdown tn-scroll" id="zoomSelectDropdown" hidden>
+              <ul class="tn-select-list" role="listbox" aria-label="Zoom level">
+                <li role="presentation"><button type="button" class="tn-select-option is-active" role="option" data-value="1.0" aria-selected="true">1.0x</button></li>
+                <li role="presentation"><button type="button" class="tn-select-option" role="option" data-value="1.5" aria-selected="false">1.5x</button></li>
+                <li role="presentation"><button type="button" class="tn-select-option" role="option" data-value="2.0" aria-selected="false">2.0x</button></li>
+              </ul>
+            </div>
+          </div>
+          <button class="btn-start-camera iniciar-feed-btn" id="startCameraBtn" type="button" data-action="start-feed">
             <svg class="icon-svg btn-start-camera-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Iniciar Feed
+            Start Feed
           </button>
         </div>
       </div>
 
-      <div class="timeline-container">
+      <div class="timeline-container event-timeline" data-component="timeline">
         <div class="timeline-header">
           <span class="timeline-header-label">EVENT TIMELINE</span>
         </div>
@@ -487,7 +495,7 @@
             </span>
           </div>
           <label class="tactical-switch">
-            <span class="switch-label" id="timelineToggleText">SHOW DETECTIONS</span>
+            <span class="switch-label show-detections-label" id="timelineToggleText">SHOW DETECTIONS</span>
             <div class="switch-track is-on" id="detectionSwitchTrack">
               <div class="switch-thumb"></div>
             </div>

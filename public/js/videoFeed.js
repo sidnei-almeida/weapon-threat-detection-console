@@ -34,6 +34,9 @@ window.VideoFeed = (() => {
   let screenshotBtn;
   let frameFileInput;
   let zoomSelect;
+  let zoomSelectWrap;
+  let zoomSelectDropdown;
+  let isZoomDropdownOpen = false;
   let videoWrapper;
   let cctvFeedLayer;
   let cameraSelector;
@@ -122,12 +125,18 @@ window.VideoFeed = (() => {
     setCameraSourceStatus(isRunning);
 
     if (isRunning) {
-      startCameraBtn.innerHTML = `${ICONS.stop} Parar Feed`;
+      startCameraBtn.innerHTML = `${ICONS.stop} Stop Feed`;
+      startCameraBtn.classList.add('parar-feed-btn');
+      startCameraBtn.classList.remove('iniciar-feed-btn');
+      startCameraBtn.dataset.action = 'stop-feed';
       startCameraBtn.onclick = stopCamera;
       return;
     }
 
-    startCameraBtn.innerHTML = `${ICONS.play} Iniciar Feed`;
+    startCameraBtn.innerHTML = `${ICONS.play} Start Feed`;
+    startCameraBtn.classList.add('iniciar-feed-btn');
+    startCameraBtn.classList.remove('parar-feed-btn');
+    startCameraBtn.dataset.action = 'start-feed';
     startCameraBtn.onclick = startCamera;
   }
 
@@ -208,6 +217,7 @@ window.VideoFeed = (() => {
 
   function openCameraDropdown() {
     if (!cameraDropdown || cameras.length === 0) return;
+    setZoomDropdownOpen(false);
     isDropdownOpen = true;
     cameraDropdown.hidden = false;
     cameraSelector?.classList.add('is-open');
@@ -274,6 +284,67 @@ window.VideoFeed = (() => {
     }
   }
 
+  function setZoomDropdownOpen(open) {
+    if (!zoomSelect || !zoomSelectDropdown) return;
+    if (open) closeCameraDropdown();
+    isZoomDropdownOpen = open;
+    zoomSelectDropdown.hidden = !open;
+    zoomSelect.classList.toggle('is-open', open);
+    zoomSelect.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function applyZoom(scale) {
+    const label = document.getElementById('zoomSelectLabel');
+    if (label) label.textContent = `${scale}x`;
+
+    zoomSelectDropdown?.querySelectorAll('.tn-select-option').forEach((btn) => {
+      const active = btn.dataset.value === scale;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+
+    if (cctvFeedLayer) {
+      cctvFeedLayer.style.transform = `scale(${scale})`;
+      cctvFeedLayer.style.transformOrigin = 'center center';
+    }
+    redrawBoundingBoxes();
+  }
+
+  function initZoomSelect() {
+    zoomSelect = document.getElementById('zoomSelect');
+    zoomSelectWrap = document.getElementById('zoomSelectWrap');
+    zoomSelectDropdown = document.getElementById('zoomSelectDropdown');
+
+    zoomSelect?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      setZoomDropdownOpen(!isZoomDropdownOpen);
+    });
+
+    zoomSelect?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        setZoomDropdownOpen(!isZoomDropdownOpen);
+      }
+      if (event.key === 'Escape') {
+        setZoomDropdownOpen(false);
+      }
+    });
+
+    zoomSelectDropdown?.querySelectorAll('.tn-select-option').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        applyZoom(btn.dataset.value);
+        setZoomDropdownOpen(false);
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('#zoomSelectWrap')) {
+        setZoomDropdownOpen(false);
+      }
+    });
+  }
+
   function initCameraSelector() {
     cameraSelector = document.getElementById('cameraSelector');
     cameraDropdown = document.getElementById('cameraDropdown');
@@ -320,6 +391,7 @@ window.VideoFeed = (() => {
     cctvFeedLayer = document.getElementById('cctvFeedLayer');
 
     initCameraSelector();
+    initZoomSelect();
     loadCameras();
 
     startCameraBtn.onclick = startCamera;
@@ -329,15 +401,6 @@ window.VideoFeed = (() => {
     screenshotBtn.onclick = takeScreenshot;
     frameFileInput.onchange = handleFileUpload;
     updatePlayPauseIcon();
-
-    zoomSelect.onchange = () => {
-      const scale = zoomSelect.value;
-      if (cctvFeedLayer) {
-        cctvFeedLayer.style.transform = `scale(${scale})`;
-        cctvFeedLayer.style.transformOrigin = 'center center';
-      }
-      redrawBoundingBoxes();
-    };
 
     initBoundingBoxObservers();
   }
@@ -515,12 +578,7 @@ window.VideoFeed = (() => {
       videoPlaceholder.style.display = 'none';
       setCctvMode(true);
 
-      if (zoomSelect) {
-        zoomSelect.value = '1.0';
-      }
-      if (cctvFeedLayer) {
-        cctvFeedLayer.style.transform = 'scale(1)';
-      }
+      applyZoom('1.0');
 
       await liveVideo.play();
 

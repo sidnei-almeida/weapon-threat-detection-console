@@ -1,6 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  color-scheme: dark;
   --bg-primary: #080808;
   --bg-surface: #0E0E0E;
   --bg-elevated: #141414;
@@ -818,7 +819,7 @@ body.is-booting .modal-overlay {
   border-radius: var(--radius-md);
   max-height: 220px;
   overflow-y: auto;
-  box-shadow: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
 .camera-dropdown-list {
@@ -890,6 +891,171 @@ body.is-booting .modal-overlay {
 .camera-selector:hover {
   border-color: var(--border-hover);
   background: var(--bg-hover);
+}
+
+/* === SCROLLBARS (app theme) === */
+.tn-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 38, 38, 0.35) transparent;
+}
+
+.tn-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.tn-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tn-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+.tn-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(220, 38, 38, 0.45);
+}
+
+/* === CUSTOM SELECT / DROPDOWN === */
+.tn-select-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.tn-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-brand);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tn-select-trigger:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+
+.tn-select-trigger.is-open {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: var(--bg-hover);
+}
+
+.tn-select-trigger.is-open .tn-select-chevron {
+  transform: rotate(180deg);
+  color: #9CA3AF;
+}
+
+.tn-select-value {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tn-select-chevron {
+  flex-shrink: 0;
+  color: #6B7280;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.tn-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  min-width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.tn-select-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.tn-select-option {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  color: #E5E7EB;
+  font-family: var(--font-brand);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.tn-select-option:last-child {
+  border-bottom: none;
+}
+
+.tn-select-option:hover,
+.tn-select-option.is-active {
+  background: var(--bg-hover);
+}
+
+.tn-select-option.is-active {
+  border-left: 2px solid var(--red-core);
+  padding-left: 8px;
+  color: var(--text-primary);
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--bg-elevated);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-brand);
+  cursor: pointer;
+  outline: none;
+  padding-right: 28px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+select:hover {
+  border-color: var(--border-hover);
+  background-color: var(--bg-hover);
+}
+
+select:focus-visible {
+  border-color: rgba(220, 38, 38, 0.45);
+}
+
+select option,
+select optgroup {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.tn-select-trigger:focus-visible,
+.tn-select-option:focus-visible {
+  border-color: rgba(220, 38, 38, 0.45);
+  outline: none;
 }
 
 .camera-name {
@@ -2131,23 +2297,18 @@ body.is-booting .modal-overlay {
   color: #EF4444;
 }
 
-.speed-select {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 4px;
-  color: #9CA3AF;
-  height: 24px;
-  padding: 0 8px;
-  font-size: 11px;
-  font-family: var(--font-brand);
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.15s ease;
-  flex-shrink: 0;
+.speed-select-wrap {
+  min-width: 64px;
 }
 
-.speed-select:hover {
-  border-color: rgba(255,255,255,0.15);
+.speed-select.tn-select-trigger {
+  height: 24px;
+  padding: 0 6px 0 8px;
+  font-size: 11px;
+}
+
+.speed-select-dropdown {
+  min-width: 72px;
 }
 
 .btn-start-camera {
@@ -3197,9 +3358,32 @@ body.is-booting .modal-overlay {
 .btn-icon { background: transparent; border: 1px solid var(--border-medium); color: var(--text-secondary); width: 28px; height: 28px; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
 .btn-icon:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: 2px; }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(220, 38, 38, 0.45);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
 
 body.tn-modal-open {
   overflow: hidden;

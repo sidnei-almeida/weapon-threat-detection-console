@@ -83,7 +83,7 @@ window.MobileLayout = (() => {
     if (!main) return;
 
     const host = document.createElement('div');
-    host.className = 'mob-panel-host';
+    host.className = 'mob-panel-host tn-scroll';
     main.appendChild(host);
 
     const cameraPanel = createPanel('camera');
@@ -119,6 +119,17 @@ window.MobileLayout = (() => {
     host.appendChild(statusPanel);
   }
 
+  function restoreCamLayout() {
+    document.getElementById('mob-cam-info')?.remove();
+    document.getElementById('mobile-cam-actions')?.remove();
+
+    const startBtn = document.getElementById('startCameraBtn');
+    const controls = document.querySelector('[data-component="controls-bar"], .video-controls');
+    if (startBtn && controls && !controls.contains(startBtn)) {
+      controls.appendChild(startBtn);
+    }
+  }
+
   function bindTabs(tabBar) {
     tabBar.querySelectorAll('.mob-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -133,6 +144,8 @@ window.MobileLayout = (() => {
 
     document.body.classList.add('is-mobile');
     buildPanels();
+    restoreCamLayout();
+
     const tabBar = buildTabBar();
     bindTabs(tabBar);
     switchPanel('camera');

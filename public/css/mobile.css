@@ -15,7 +15,25 @@
     flex-direction: column !important;
     height: 100dvh !important;
     overflow: hidden !important;
+    overflow-x: hidden !important;
     width: 100vw !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+
+  body,
+  #app,
+  .app-root,
+  .app-wrapper,
+  .mob-panel,
+  [data-panel] {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+
+  .mob-panel * {
+    box-sizing: border-box !important;
   }
 
   /* === HEADER BAR === */
@@ -94,27 +112,67 @@
   .mob-panel-host {
     display: flex !important;
     flex-direction: column !important;
-    flex: 1 !important;
+    flex: 1 1 auto !important;
     min-height: 0 !important;
     width: 100% !important;
-    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
   }
 
   .mob-panel {
     display: none !important;
-    flex: 1 !important;
-    min-height: 0 !important;
-    padding: 12px 14px calc(80px + env(safe-area-inset-bottom)) !important;
-    overflow-y: auto !important;
+    flex-direction: column !important;
     overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    flex-direction: column !important;
+    min-height: 0 !important;
   }
 
   .mob-panel.is-active {
     display: flex !important;
+  }
+
+  /* CAM tab */
+  .mob-panel[data-panel="camera"] {
+    flex: 0 0 auto !important;
+    padding: 0 !important;
+    padding-bottom: calc(52px + env(safe-area-inset-bottom)) !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Other tabs — scrollable with padding */
+  .mob-panel[data-panel="threat"],
+  .mob-panel[data-panel="status"] {
+    flex: 1 1 auto !important;
+    padding: 12px 14px calc(52px + env(safe-area-inset-bottom) + 12px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* AI tab — full-width panel; inner sections own horizontal padding */
+  .mob-panel[data-panel="ai"] {
+    flex: 1 1 auto !important;
+    padding: 0 !important;
+    padding-bottom: calc(52px + env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+  }
+
+  .mob-panel[data-panel="ai"] * {
+    max-width: 100% !important;
+  }
+
+  .mob-panel[data-panel="ai"] .escalate-btn__ticker span {
+    max-width: none !important;
   }
 
   .mob-panel--status .sidebar-status-footer {
@@ -131,35 +189,102 @@
     padding: 16px 0;
   }
 
+  /* Ghost sidebars — only direct main-content children (panels use moved nodes) */
+  .main-content > .left-sidebar,
+  .main-content > [data-sidebar="left"],
+  .main-content > .right-sidebar,
+  .main-content > [data-sidebar="right"] {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .app-root,
+  #app,
+  [data-layout="main"] {
+    min-height: unset !important;
+  }
+
+  /* === CAM PANEL SECTIONS === */
+  [data-section="camera-source"],
+  .camera-source-section,
+  .camera-source-block {
+    padding: 10px 14px 8px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+  }
+
+  .camera-selector,
+  #cameraSelector {
+    width: 100% !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  .camera-status-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 6px !important;
+    font-size: 10px !important;
+  }
+
   /* === VIDEO AREA === */
   .center-panel,
   [data-component="video-area"] {
     flex: 0 0 auto !important;
     width: 100% !important;
-    overflow: visible !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
     min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  .video-container {
+  .center-panel .video-container,
+  [data-component="video-wrapper"] {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
     width: 100% !important;
-    flex-shrink: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  .video-wrapper,
-  #videoWrapper {
+  .center-panel #videoWrapper,
+  [data-component="video-wrapper"] #videoWrapper {
     width: 100% !important;
     max-width: 100% !important;
-    flex-shrink: 0 !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    aspect-ratio: 16 / 9 !important;
+    max-height: min(56vw, 240px) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    border-left: none !important;
+    border-right: none !important;
   }
 
   .cctv-feed-layer,
   #cctvFeedLayer {
-    position: relative !important;
+    position: absolute !important;
+    inset: 0 !important;
     width: 100% !important;
-    height: auto !important;
-    aspect-ratio: 16 / 9 !important;
-    max-height: 240px !important;
-    flex-shrink: 0 !important;
+    height: 100% !important;
+    max-height: none !important;
+    aspect-ratio: unset !important;
     overflow: hidden !important;
   }
 
@@ -167,7 +292,7 @@
   #staticFrame {
     width: 100% !important;
     height: 100% !important;
-    max-height: 240px !important;
+    max-height: none !important;
     object-fit: contain !important;
     display: block !important;
   }
@@ -193,42 +318,235 @@
     aspect-ratio: unset !important;
   }
 
-  #videoWrapper {
-    aspect-ratio: 16 / 9 !important;
-    max-height: 280px !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .video-controls {
-    flex-wrap: wrap !important;
+  /* Video empty state */
+  .video-empty-state,
+  [data-component="empty-state"],
+  .video-placeholder {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 120px !important;
     gap: 6px !important;
-    padding: 8px 0 !important;
+    padding: 20px !important;
   }
 
-  .timeline-container {
-    width: 100% !important;
+  .video-empty-state .placeholder-icon,
+  .video-empty-state .camera-icon,
+  .video-empty-state svg {
+    width: 28px !important;
+    height: 28px !important;
+    opacity: 0.15 !important;
+  }
+
+  .video-empty-state .primary-text,
+  .video-empty-state .placeholder-primary {
+    font-size: 11px !important;
+    text-align: center !important;
+    margin: 0 !important;
+  }
+
+  .video-empty-state .secondary-text,
+  .video-empty-state .placeholder-sub {
+    font-size: 9px !important;
+    text-align: center !important;
+    margin: 0 !important;
+  }
+
+  /* Overlays inside video */
+  .cam-label-pill {
+    font-size: 9px !important;
+    padding: 2px 8px !important;
+    top: 8px !important;
+  }
+
+  .video-timestamp,
+  .video-datetime {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+    top: 8px !important;
+    left: 8px !important;
+  }
+
+  .cctv-rec {
+    top: 10px !important;
+    right: 36px !important;
+    font-size: 8px !important;
+  }
+
+  .fullscreen-btn {
+    top: 6px !important;
+    right: 8px !important;
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    padding: 0 !important;
+  }
+
+  .ai-inference-badge,
+  [data-component="ai-badge"] {
+    position: absolute !important;
+    bottom: 8px !important;
+    left: 10px !important;
+    font-size: 9px !important;
+    padding: 2px 8px !important;
+    z-index: 15 !important;
+  }
+
+  /* === CONTROLS BAR === */
+  .video-controls-bar,
+  .video-controls,
+  [data-component="controls-bar"] {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 12px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    flex-wrap: nowrap !important;
+    overflow: hidden !important;
+    gap: 8px !important;
     flex-shrink: 0 !important;
-    margin-top: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    position: static !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
   }
 
-  .camera-source-block {
-    margin-bottom: 10px !important;
+  .video-controls-bar .btn-control,
+  .video-controls .btn-control {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex-shrink: 0 !important;
+    padding: 0 !important;
+  }
+
+  .video-controls .speed-select,
+  .speed-select.tn-select-trigger,
+  .tn-select-trigger.speed-select {
+    height: 28px !important;
+    min-height: 28px !important;
+    flex-shrink: 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 6px !important;
+    font-size: 10px !important;
+  }
+
+  .iniciar-feed-btn,
+  .parar-feed-btn,
+  [data-action="start-feed"],
+  [data-action="stop-feed"],
+  .btn-start-camera {
+    position: static !important;
+    float: none !important;
+    margin: 0 !important;
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    min-width: unset !important;
+    padding: 0 12px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    order: 99 !important;
+    gap: 4px !important;
+  }
+
+  #mobile-cam-actions,
+  #mob-cam-info {
+    display: none !important;
+  }
+
+  /* === TIMELINE === */
+  .timeline-container,
+  .event-timeline,
+  [data-component="timeline"] {
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: unset !important;
+    max-height: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+    padding-right: 14px !important;
+    margin: 0 !important;
+    position: static !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .timeline-header {
+    padding: 6px 12px 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .timeline-header-label,
+  .timeline-label {
+    font-size: 9px !important;
+    white-space: nowrap !important;
+  }
+
+  .timeline-bar {
+    margin: 4px 12px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .timeline-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 6px 12px 8px !important;
+    margin-top: 0 !important;
+    flex-shrink: 0 !important;
+    gap: 8px !important;
+    min-height: 36px !important;
+    box-sizing: border-box !important;
+  }
+
+  .timeline-tags {
+    display: none !important;
+  }
+
+  .show-detections-label,
+  .switch-label {
+    display: none !important;
+  }
+
+  .tactical-switch {
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
+    min-height: unset !important;
+    min-width: unset !important;
+  }
+
+  .switch-track {
     flex-shrink: 0 !important;
   }
 
   /* Threat / AI panels — restore sidebar appearance */
   .mob-panel .sidebar-section,
-  .mob-panel .threat-event-panel,
   .mob-panel .sidebar-right {
     display: flex !important;
     flex-direction: column !important;
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
-    overflow: visible !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
     border-left: none !important;
     border-right: none !important;
+    position: static !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
 
   .mob-panel .sidebar-right,
@@ -236,8 +554,386 @@
     display: flex !important;
   }
 
+  .mob-panel[data-panel="ai"] .threat-event-panel,
+  .mob-panel[data-panel="ai"] .sidebar-right,
+  .mob-panel[data-panel="ai"] [data-sidebar="right"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+  }
+
   .mob-panel .threat-event-panel {
-    overflow: visible !important;
+    overflow-x: hidden !important;
+  }
+
+  /* === AI TAB — THREAT EVENT PANEL === */
+
+  .mob-panel[data-panel="ai"] .threat-event-header,
+  .mob-panel[data-panel="ai"] [data-section="threat-event"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 10px 14px 8px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    width: 100% !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .threat-event-header-label {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 10px !important;
+    letter-spacing: 0.14em !important;
+    color: #9CA3AF !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .mob-panel[data-panel="ai"] .event-id,
+  .mob-panel[data-panel="ai"] .threat-event-id {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 9px !important;
+    color: #374151 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .event-details {
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .mob-panel[data-panel="ai"] .threat-field-row,
+  .mob-panel[data-panel="ai"] .event-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 9px 14px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-height: 40px !important;
+    overflow-x: hidden !important;
+  }
+
+  .mob-panel[data-panel="ai"] .event-row--multiline {
+    align-items: flex-start !important;
+    min-height: unset !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .mob-panel[data-panel="ai"] .event-row-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .event-icon svg,
+  .mob-panel[data-panel="ai"] .event-icon .icon-svg {
+    width: 14px !important;
+    height: 14px !important;
+    flex-shrink: 0 !important;
+    color: #374151 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .event-key {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 10px !important;
+    letter-spacing: 0.08em !important;
+    color: #4B5563 !important;
+    text-transform: uppercase !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .mob-panel[data-panel="ai"] .event-val,
+  .mob-panel[data-panel="ai"] .threat-field-value {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 11px !important;
+    color: #E5E7EB !important;
+    text-align: right !important;
+    flex-shrink: 0 !important;
+    max-width: 45% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .mob-panel[data-panel="ai"] .event-row--multiline .event-val,
+  .mob-panel[data-panel="ai"] .event-row--multiline .threat-field-value {
+    white-space: normal !important;
+    line-height: 1.4 !important;
+    max-width: 48% !important;
+  }
+
+  .mob-panel[data-panel="ai"] .escalate-btn,
+  .mob-panel[data-panel="ai"] #escalateBtn {
+    width: calc(100% - 28px) !important;
+    max-width: calc(100% - 28px) !important;
+    margin: 12px 14px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .mob-panel[data-panel="ai"] .escalate-btn__label {
+    font-size: 11px !important;
+    letter-spacing: 0.14em !important;
+  }
+
+  .mob-panel[data-panel="ai"] .escalate-btn__sublabel {
+    font-size: 7px !important;
+    letter-spacing: 0.12em !important;
+    bottom: 8px !important;
+  }
+
+  .mob-panel[data-panel="ai"] .escalate-btn__ticker {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .escalate-btn__corner {
+    width: 6px !important;
+    height: 6px !important;
+  }
+
+  .mob-panel[data-panel="ai"] .event-action-row,
+  .mob-panel[data-panel="ai"] .action-buttons-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    padding: 0 14px 12px !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .mob-panel[data-panel="ai"] .action-buttons-row button,
+  .mob-panel[data-panel="ai"] .event-action-row button,
+  .mob-panel[data-panel="ai"] .btn-secondary-action,
+  .mob-panel[data-panel="ai"] [data-action="mark-reviewed"],
+  .mob-panel[data-panel="ai"] [data-action="false-alarm"] {
+    flex: 1 !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 10px !important;
+    letter-spacing: 0.06em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    padding: 0 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+  }
+
+  .mob-panel[data-panel="ai"] [data-action="mark-reviewed"] svg,
+  .mob-panel[data-panel="ai"] [data-action="false-alarm"] svg,
+  .mob-panel[data-panel="ai"] .btn-secondary-action svg {
+    width: 12px !important;
+    height: 12px !important;
+    flex-shrink: 0 !important;
+    max-width: 12px !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-section {
+    width: 100% !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-header-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    padding: 10px 14px 8px !important;
+    margin: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-star,
+  .mob-panel[data-panel="ai"] .ai-summary-header-row svg {
+    width: 13px !important;
+    height: 13px !important;
+    flex-shrink: 0 !important;
+    max-width: 13px !important;
+    color: #4B5563 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-title {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 9px !important;
+    letter-spacing: 0.14em !important;
+    color: #4B5563 !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-header-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-generated-label {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 8px !important;
+    color: #374151 !important;
+    white-space: nowrap !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-generated-time {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 8px !important;
+    color: #2D3748 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-body {
+    padding: 10px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-waiting {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-waiting-dot {
+    width: 7px !important;
+    height: 7px !important;
+    flex-shrink: 0 !important;
+    max-width: 7px !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-waiting-text {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 11px !important;
+    font-style: italic !important;
+    color: #4B5563 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-skeletons,
+  .mob-panel[data-panel="ai"] .ai-summary-cards {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px 12px !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 2px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    margin-bottom: 0 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-card-label {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 8px !important;
+    letter-spacing: 0.12em !important;
+    color: #2D3748 !important;
+    text-transform: uppercase !important;
+    margin-bottom: 8px !important;
+    display: block !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-card-lines {
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-skeleton-line {
+    height: 7px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 99px !important;
+    margin-bottom: 6px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-skeleton-line:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-card-body {
+    font-size: 11px !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-footer {
+    padding: 8px 14px !important;
+    margin-top: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.04) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-footer-model,
+  .mob-panel[data-panel="ai"] .ai-summary-footer-status {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 8px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .mob-panel[data-panel="ai"] .ai-summary-footer-status {
+    flex-shrink: 0 !important;
   }
 
   /* === BOTTOM TAB BAR === */
@@ -247,8 +943,8 @@
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    height: calc(56px + env(safe-area-inset-bottom)) !important;
-    background: #0A0A0A !important;
+    height: calc(52px + env(safe-area-inset-bottom)) !important;
+    background: #080808 !important;
     border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
     z-index: 1000 !important;
     padding-bottom: env(safe-area-inset-bottom) !important;
@@ -261,16 +957,23 @@
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 3px !important;
+    gap: 4px !important;
+    padding: 8px 0 !important;
+    min-height: unset !important;
+    min-width: unset !important;
     background: transparent !important;
     border: none !important;
     border-top: 2px solid transparent !important;
     cursor: pointer !important;
-    color: #4B5563 !important;
-    transition: color 0.15s !important;
-    padding-bottom: 2px !important;
-    min-height: unset !important;
-    min-width: unset !important;
+    color: #374151 !important;
+    transition: color 0.15s, border-color 0.15s, background 0.15s !important;
+  }
+
+  .mob-tab svg {
+    width: 18px !important;
+    height: 18px !important;
+    stroke: currentColor !important;
+    flex-shrink: 0 !important;
   }
 
   .mob-tab span {
@@ -278,6 +981,7 @@
     font-size: 8px !important;
     letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
+    line-height: 1 !important;
   }
 
   .mob-tab.active {
@@ -289,6 +993,11 @@
     color: #9CA3AF !important;
   }
 
+  .mob-tab:active {
+    color: #9CA3AF !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+  }
+
   /* === TYPOGRAPHY & TOUCH === */
   button,
   [role="button"] {
@@ -296,75 +1005,60 @@
     min-width: 44px !important;
   }
 
-  .mob-tab {
+  .mob-tab,
+  .video-controls .btn-control,
+  .btn-start-camera,
+  .iniciar-feed-btn,
+  .parar-feed-btn,
+  [data-action="start-feed"],
+  [data-action="stop-feed"],
+  .speed-select.tn-select-trigger,
+  .tn-select-trigger.speed-select,
+  .tactical-switch,
+  .switch-track,
+  .mob-panel[data-panel="ai"] .btn-secondary-action,
+  .mob-panel[data-panel="ai"] .escalate-btn,
+  .mob-panel[data-panel="ai"] #escalateBtn {
     min-height: unset !important;
     min-width: unset !important;
   }
 
-  .btn-icon.fullscreen-btn,
-  .github-link {
-    min-height: 44px !important;
-    min-width: 44px !important;
+  .btn-icon.fullscreen-btn {
+    min-width: 24px !important;
+    min-height: 24px !important;
   }
 
-  .escalate-btn,
-  #escalateBtn {
-    height: 52px !important;
-    font-size: 13px !important;
-    width: 100% !important;
-  }
-
-  .action-buttons-row,
-  .event-action-row {
-    display: flex !important;
-    gap: 8px !important;
-    margin-left: 14px !important;
-    margin-right: 14px !important;
-  }
-
-  .action-buttons-row button,
-  .event-action-row button {
-    flex: 1 !important;
-    font-size: 11px !important;
-    min-width: 0 !important;
-  }
-
-  .section-label,
-  .section-label-accent,
-  .threat-context-header,
-  .threat-event-header-label,
-  .timeline-header-label {
+  /* Threat tab — compact typography (AI tab has dedicated rules above) */
+  .mob-panel[data-panel="threat"] .section-label,
+  .mob-panel[data-panel="threat"] .section-label-accent,
+  .mob-panel[data-panel="threat"] .threat-context-header,
+  .mob-panel[data-panel="threat"] .timeline-header-label {
     font-size: 9px !important;
   }
 
-  .event-key,
-  .ctx-key,
-  .stat-card-label {
+  .mob-panel[data-panel="threat"] .event-key,
+  .mob-panel[data-panel="threat"] .ctx-key,
+  .mob-panel[data-panel="threat"] .stat-card-label {
     font-size: 10px !important;
   }
 
-  .event-val,
-  .ctx-val,
-  .stat-card-value,
-  .threat-field-value {
+  .mob-panel[data-panel="threat"] .event-val,
+  .mob-panel[data-panel="threat"] .ctx-val,
+  .mob-panel[data-panel="threat"] .stat-card-value,
+  .mob-panel[data-panel="threat"] .threat-field-value {
     font-size: 11px !important;
   }
 
-  .stat-cards-row {
+  .mob-panel[data-panel="threat"] .stat-cards-row {
     flex-direction: column !important;
     gap: 6px !important;
   }
 
-  .ai-summary-card {
-    padding: 10px 12px !important;
-    margin-bottom: 8px !important;
-  }
-
-  .confidence-chart-shell {
+  .mob-panel[data-panel="threat"] .confidence-chart-shell {
     min-height: 120px !important;
   }
 
-  .zone-heatmap-grid {
+  .mob-panel[data-panel="threat"] .zone-heatmap-grid {
     max-width: 100% !important;
   }
 
@@ -385,7 +1079,7 @@
   }
 
   .tn-toast-stack {
-    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(68px + env(safe-area-inset-bottom)) !important;
     right: 16px !important;
     left: 16px !important;
   }
