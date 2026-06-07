@@ -686,26 +686,50 @@ window.Dashboard = (() => {
     button.textContent = 'Analisando...';
     button.disabled = true;
 
-    const formData = new FormData();
-    formData.append('image', uploadedFile);
-    formData.append('cameraId', document.getElementById('uploadCameraId').value);
-    formData.append('zone', document.getElementById('uploadZone').value);
+    const cameraId = document.getElementById('uploadCameraId').value;
+    const zone = document.getElementById('uploadZone').value;
 
     try {
       const reader = new FileReader();
       reader.onload = async () => {
         window.VideoFeed.showStaticFrame(reader.result);
+
+        if (window.YoloClient?.isActive()) {
+          const img = new Image();
+          img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            const data = await window.YoloClient.analyzeCanvas(
+              canvas,
+              img.naturalWidth,
+              img.naturalHeight,
+              cameraId,
+              zone,
+            );
+            document.getElementById('uploadModal').style.display = 'none';
+            handleDetections(data);
+          };
+          img.src = reader.result;
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', uploadedFile);
+        formData.append('cameraId', cameraId);
+        formData.append('zone', zone);
+
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await response.json();
+
+        document.getElementById('uploadModal').style.display = 'none';
+        handleDetections(data);
       };
       reader.readAsDataURL(uploadedFile);
-
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-
-      document.getElementById('uploadModal').style.display = 'none';
-      handleDetections(data);
     } catch (error) {
       alert(`Erro ao analisar imagem: ${error.message}`);
     } finally {

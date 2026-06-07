@@ -3,6 +3,7 @@ const { loadModel } = require('../../src/yolo/loadModel');
 const { preprocessBuffer, TARGET_WIDTH, TARGET_HEIGHT } = require('../../src/yolo/preprocessImage');
 const { postprocessDetections, DEFAULT_CONFIDENCE_THRESHOLD } = require('../../src/yolo/postprocessDetections');
 const { processDetections } = require('./roboflow');
+const { isRoboflowConfigured } = require('./detectionConfig');
 const { log } = require('../utils/logger');
 
 let sessionPromise = null;
@@ -76,14 +77,7 @@ async function analyzeBufferLocal(imageBuffer, cameraId, zone, confidenceThresho
 }
 
 function isRoboflowConfigured() {
-  const apiKey = process.env.ROBOFLOW_API_KEY;
-  const weaponProject = process.env.ROBOFLOW_PROJECT_WEAPON;
-
-  if (!apiKey || !weaponProject) return false;
-  if (apiKey === 'your_api_key_here') return false;
-  if (weaponProject === 'weapon-detection-project-name') return false;
-
-  return true;
+  return require('./detectionConfig').isRoboflowConfigured();
 }
 
 module.exports = {

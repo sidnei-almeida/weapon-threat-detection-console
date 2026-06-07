@@ -607,6 +607,32 @@ window.VideoFeed = (() => {
     captureCtx.drawImage(liveVideo, 0, 0, targetWidth, targetHeight);
 
     try {
+      const cameraId = selectedCamera?.id || 'CAM-01';
+      const zone = selectedCamera?.zone || 'Unknown Zone';
+
+      if (window.YoloClient?.isActive()) {
+        const data = await window.YoloClient.analyzeCanvas(
+          captureCanvas,
+          targetWidth,
+          targetHeight,
+          cameraId,
+          zone,
+        );
+
+        framesAnalyzed += 1;
+        lastAnalyzeMs = performance.now() - startedAt;
+        updateInferenceBadge();
+
+        if (window.Dashboard) {
+          window.Dashboard.handleDetections({
+            ...data,
+            imageWidth: targetWidth,
+            imageHeight: targetHeight,
+          });
+        }
+        return;
+      }
+
       const blob = await new Promise((resolve) => {
         captureCanvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY);
       });
@@ -615,8 +641,8 @@ window.VideoFeed = (() => {
 
       const formData = new FormData();
       formData.append('image', blob, 'frame.jpg');
-      formData.append('cameraId', selectedCamera?.id || 'CAM-01');
-      formData.append('zone', selectedCamera?.zone || 'Unknown Zone');
+      formData.append('cameraId', cameraId);
+      formData.append('zone', zone);
 
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -661,12 +687,35 @@ window.VideoFeed = (() => {
     reader.onload = async () => {
       showStaticFrame(reader.result);
 
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('cameraId', selectedCamera?.id || document.getElementById('uploadCameraId')?.value || 'CAM-01');
-      formData.append('zone', selectedCamera?.zone || document.getElementById('uploadZone')?.value || 'Unknown Zone');
+      const cameraId = selectedCamera?.id || document.getElementById('uploadCameraId')?.value || 'CAM-01';
+      const zone = selectedCamera?.zone || document.getElementById('uploadZone')?.value || 'Unknown Zone';
 
       try {
+        if (window.YoloClient?.isActive()) {
+          const img = new Image();
+          img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            const data = await window.YoloClient.analyzeCanvas(
+              canvas,
+              img.naturalWidth,
+              img.naturalHeight,
+              cameraId,
+              zone,
+            );
+            window.Dashboard?.handleDetections(data);
+          };
+          img.src = reader.result;
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('cameraId', cameraId);
+        formData.append('zone', zone);
+
         const response = await fetch('/api/analyze', {
           method: 'POST',
           body: formData,

@@ -1,4 +1,6 @@
 window.ThreatVisionBoot = (() => {
+  let clientInference = false;
+
   const STEPS = [
     {
       id: 'connect',
@@ -7,7 +9,10 @@ window.ThreatVisionBoot = (() => {
       run: async () => {
         const response = await fetch('/api/health');
         if (!response.ok) throw new Error('Servidor indisponível');
-        return response.json();
+        const data = await response.json();
+        clientInference = Boolean(data.clientInference);
+        window.__THREATVISION_CLIENT_INFERENCE__ = clientInference;
+        return data;
       },
     },
     {
@@ -15,6 +20,11 @@ window.ThreatVisionBoot = (() => {
       label: 'Carregando modelo YOLO...',
       progress: 62,
       run: async () => {
+        if (clientInference) {
+          if (!window.YoloClient) throw new Error('Cliente YOLO indisponível');
+          return window.YoloClient.warmUp();
+        }
+
         const response = await fetch('/api/warmup');
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {

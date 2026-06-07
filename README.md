@@ -183,26 +183,27 @@ Imagens de exemplo em `images/` · classes em `dataset/data.yaml`.
 
 1. Importe o repositório em [vercel.com](https://vercel.com).
 2. Framework preset: **Other**
-3. Deploy (sem variáveis obrigatórias para YOLO local).
+3. Deploy (sem variáveis obrigatórias).
 
-### Assets necessários no repositório
+### Como funciona na Vercel
+
+| Componente | Onde roda |
+|------------|-----------|
+| UI + vídeos + modelo ONNX | CDN estática (`public/`) |
+| API leve (`/api/cameras`, eventos…) | Serverless (~sem onnxruntime-node) |
+| **Inferência YOLO** | **Navegador** (`onnxruntime-web` + `/models/roadvision_yolo_fp32.onnx`) |
+
+Isso evita o limite de **250 MB** da função serverless (o pacote `onnxruntime-node` tem ~580 MB).
+
+Localmente (`npm run dev`) a inferência continua no **servidor** via `onnxruntime-node`.
+
+### Assets no repositório
 
 ```
-public/videos/*.mp4              (~31 MB)
-models/roadvision_yolo_fp32.onnx (~38 MB)
+public/videos/*.mp4
+public/models/roadvision_yolo_fp32.onnx
+models/roadvision_yolo_fp32.onnx   (cópia para dev local)
 ```
-
-GitHub aceita arquivos até 100 MB. Para repos mais leves, use [Git LFS](https://git-lfs.com).
-
-### Limitações do plano gratuito
-
-| Item | Detalhe |
-|------|---------|
-| Timeout | **10 s** por requisição — cold start + modelo pode demorar na 1ª análise |
-| Socket.IO | Apenas em **localhost**; na Vercel o feed usa HTTP |
-| Histórico | Eventos em memória resetam quando a função serverless reinicia |
-
-Se a inferência falhar por timeout, configure Roboflow nas Environment Variables (ver `.env.example`).
 
 ---
 
