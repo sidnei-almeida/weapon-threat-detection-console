@@ -8,6 +8,8 @@ window.YoloClient = (() => {
 
   let active = false;
   let sessionPromise = null;
+  let preprocessSurface = null;
+  let preprocessSurfaceCtx = null;
 
   function isActive() {
     return active;
@@ -137,14 +139,17 @@ window.YoloClient = (() => {
     });
   }
 
-  function preprocessCanvas(sourceCanvas, sourceWidth, sourceHeight) {
-    const offscreen = document.createElement('canvas');
-    offscreen.width = TARGET_SIZE;
-    offscreen.height = TARGET_SIZE;
-    const ctx = offscreen.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(sourceCanvas, 0, 0, sourceWidth, sourceHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
+  function buildInputTensor(source, sourceWidth, sourceHeight) {
+    if (!preprocessSurface) {
+      preprocessSurface = document.createElement('canvas');
+      preprocessSurface.width = TARGET_SIZE;
+      preprocessSurface.height = TARGET_SIZE;
+      preprocessSurfaceCtx = preprocessSurface.getContext('2d', { willReadFrequently: true });
+    }
 
-    const { data } = ctx.getImageData(0, 0, TARGET_SIZE, TARGET_SIZE);
+    preprocessSurfaceCtx.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
+
+    const { data } = preprocessSurfaceCtx.getImageData(0, 0, TARGET_SIZE, TARGET_SIZE);
     const pixelCount = TARGET_SIZE * TARGET_SIZE;
     const tensorData = new Float32Array(3 * pixelCount);
 
@@ -170,8 +175,17 @@ window.YoloClient = (() => {
 
     if (!sessionPromise) {
       ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/';
+      if (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) {
+        ort.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency);
+      }
+
       sessionPromise = ort.InferenceSession.create(MODEL_URL, {
-        executionProviders: ['wasm'],
+        executionProviders: ['webgpu', 'webgl', 'wasm'],
+      }).catch((error) => {
+        console.warn('GPU inference unavailable, falling back to WASM:', error.message);
+        return ort.InferenceSession.create(MODEL_URL, {
+          executionProviders: ['wasm'],
+        });
       });
     }
 
@@ -184,9 +198,9 @@ window.YoloClient = (() => {
     return { ready: true, backend: 'yolo-client' };
   }
 
-  async function analyzeCanvas(sourceCanvas, imageWidth, imageHeight, cameraId, zone) {
+  async function runInference(source, imageWidth, imageHeight, cameraId, zone) {
     const session = await getSession();
-    const preprocessed = preprocessCanvas(sourceCanvas, imageWidth, imageHeight);
+    const preprocessed = buildInputTensor(source, imageWidth, imageHeight);
     const inputName = session.inputNames[0];
     const inputTensor = new ort.Tensor('float32', preprocessed.tensorData, preprocessed.inputShape);
     const results = await session.run({ [inputName]: inputTensor });
@@ -210,10 +224,23 @@ window.YoloClient = (() => {
     };
   }
 
+  async function analyzeCanvas(sourceCanvas, imageWidth, imageHeight, cameraId, zone) {
+    return runInference(sourceCanvas, imageWidth, imageHeight, cameraId, zone);
+  }
+
+  async function analyzeImageBitmap(imageBitmap, imageWidth, imageHeight, cameraId, zone) {
+    try {
+      return await runInference(imageBitmap, imageWidth, imageHeight, cameraId, zone);
+    } finally {
+      imageBitmap.close();
+    }
+  }
+
   return {
     isActive,
     enable,
     warmUp,
     analyzeCanvas,
+    analyzeImageBitmap,
   };
 })();

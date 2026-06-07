@@ -4,8 +4,28 @@ window.VideoFeed = (() => {
   let mediaRecorder = null;
   let recordedChunks = [];
   let currentDetections = [];
-  let frameInterval = null;
-  const FRAME_INTERVAL_MS = 150;
+  let captureRafId = null;
+  let captureWorker = null;
+  let workerReady = false;
+  let workerCapturePending = false;
+  let useCaptureWorker = false;
+  let lastCaptureTime = 0;
+  let safeCaptureIntervalMs = 0;
+  let inferenceSmoothMs = 0;
+  const DEFAULT_INFERENCE_FPS = 12;
+  const MIN_INFERENCE_FPS = 1;
+  const MAX_INFERENCE_FPS = 30;
+
+  function resolveFrameIntervalMs() {
+    const raw = window.__THREATVISION_INFERENCE_FPS__;
+    const fps = Number.parseFloat(raw);
+    const target = Number.isFinite(fps)
+      ? Math.min(MAX_INFERENCE_FPS, Math.max(MIN_INFERENCE_FPS, fps))
+      : DEFAULT_INFERENCE_FPS;
+    return Math.max(50, Math.round(1000 / target));
+  }
+
+  let frameIntervalMs = resolveFrameIntervalMs();
   const MAX_CAPTURE_WIDTH = 640;
   const JPEG_QUALITY = 0.72;
 
@@ -374,6 +394,9 @@ window.VideoFeed = (() => {
   }
 
   function init() {
+    frameIntervalMs = resolveFrameIntervalMs();
+    safeCaptureIntervalMs = frameIntervalMs;
+
     startCameraBtn = document.getElementById('startCameraBtn');
     liveVideo = document.getElementById('liveVideo');
     staticFrame = document.getElementById('staticFrame');
@@ -587,7 +610,7 @@ window.VideoFeed = (() => {
       resetPlayPauseState();
       updateCameraCounts();
 
-      frameInterval = setInterval(captureAndAnalyzeFrame, FRAME_INTERVAL_MS);
+      startCaptureLoop();
       lastAnalyzeMs = 0;
       framesAnalyzed = 0;
       await captureAndAnalyzeFrame();
@@ -607,10 +630,8 @@ window.VideoFeed = (() => {
       stream = null;
     }
 
-    if (frameInterval) {
-      clearInterval(frameInterval);
-      frameInterval = null;
-    }
+    stopCaptureLoop();
+    terminateCaptureWorker();
 
     if (isVideoFeedActive) {
       liveVideo.pause();
@@ -621,6 +642,7 @@ window.VideoFeed = (() => {
 
     analyzeInFlight = false;
     analyzePending = false;
+    workerCapturePending = false;
     lastAnalyzeMs = 0;
     framesAnalyzed = 0;
 
@@ -632,6 +654,256 @@ window.VideoFeed = (() => {
     resetPlayPauseState();
     clearDetections();
     updateCameraCounts();
+  }
+
+  function getCaptureDimensions() {
+    const sourceWidth = liveVideo.videoWidth;
+    const sourceHeight = liveVideo.videoHeight;
+    const scale = Math.min(1, MAX_CAPTURE_WIDTH / sourceWidth);
+    return {
+      targetWidth: Math.round(sourceWidth * scale),
+      targetHeight: Math.round(sourceHeight * scale),
+    };
+  }
+
+  function getCameraContext() {
+    return {
+      cameraId: selectedCamera?.id || 'CAM-01',
+      zone: selectedCamera?.zone || 'Unknown Zone',
+    };
+  }
+
+  function supportsCaptureWorker() {
+    return typeof Worker !== 'undefined' && typeof createImageBitmap === 'function';
+  }
+
+  function initCaptureWorker() {
+    if (!supportsCaptureWorker() || captureWorker) return;
+
+    try {
+      captureWorker = new Worker('/capture.worker.js');
+      captureWorker.onmessage = handleCaptureWorkerMessage;
+      captureWorker.onerror = (error) => {
+        console.warn('Capture worker error — using main-thread fallback:', error.message);
+        useCaptureWorker = false;
+        workerCapturePending = false;
+      };
+      captureWorker.postMessage({ type: 'init' });
+    } catch (error) {
+      console.warn('Capture worker unavailable — using main-thread fallback:', error.message);
+      useCaptureWorker = false;
+      captureWorker = null;
+    }
+  }
+
+  function terminateCaptureWorker() {
+    if (captureWorker) {
+      captureWorker.terminate();
+      captureWorker = null;
+    }
+    workerReady = false;
+    useCaptureWorker = false;
+    workerCapturePending = false;
+  }
+
+  function startCaptureLoop() {
+    stopCaptureLoop();
+    initCaptureWorker();
+    safeCaptureIntervalMs = frameIntervalMs;
+    lastCaptureTime = 0;
+    captureRafId = requestAnimationFrame(captureLoop);
+  }
+
+  function stopCaptureLoop() {
+    if (captureRafId) {
+      cancelAnimationFrame(captureRafId);
+      captureRafId = null;
+    }
+  }
+
+  function captureLoop(timestamp) {
+    captureRafId = requestAnimationFrame(captureLoop);
+
+    if (!isVideoFeedActive || isPaused) return;
+    if (timestamp - lastCaptureTime < safeCaptureIntervalMs) return;
+    if (workerCapturePending || analyzeInFlight) return;
+    if (!liveVideo || liveVideo.readyState < 2 || !liveVideo.videoWidth) return;
+
+    lastCaptureTime = timestamp;
+    scheduleFrameCapture();
+  }
+
+  async function createVideoBitmap(targetWidth, targetHeight) {
+    try {
+      return await createImageBitmap(liveVideo, {
+        resizeWidth: targetWidth,
+        resizeHeight: targetHeight,
+        resizeQuality: 'low',
+      });
+    } catch {
+      return createImageBitmap(liveVideo);
+    }
+  }
+
+  async function scheduleFrameCapture() {
+    const { targetWidth, targetHeight } = getCaptureDimensions();
+
+    if (window.YoloClient?.isActive()) {
+      try {
+        workerCapturePending = true;
+        const bitmap = await createVideoBitmap(targetWidth, targetHeight);
+        workerCapturePending = false;
+        await runInferenceFromBitmap(bitmap, bitmap.width, bitmap.height);
+      } catch (error) {
+        workerCapturePending = false;
+        console.error('Frame capture failed:', error.message);
+      }
+      return;
+    }
+
+    if (useCaptureWorker && captureWorker && workerReady) {
+      try {
+        workerCapturePending = true;
+        const bitmap = await createVideoBitmap(targetWidth, targetHeight);
+        captureWorker.postMessage(
+          {
+            type: 'capture',
+            bitmap,
+            width: bitmap.width,
+            height: bitmap.height,
+            output: 'blob',
+            quality: JPEG_QUALITY,
+            format: 'image/jpeg',
+          },
+          [bitmap],
+        );
+      } catch (error) {
+        workerCapturePending = false;
+        console.error('Frame capture failed:', error.message);
+      }
+      return;
+    }
+
+    await captureAndAnalyzeFrameMainThread();
+  }
+
+  function handleCaptureWorkerMessage(event) {
+    const { type } = event.data;
+
+    if (type === 'ready') {
+      workerReady = true;
+      useCaptureWorker = true;
+      return;
+    }
+
+    if (type === 'unsupported' || type === 'error') {
+      console.warn('Capture worker fallback:', event.data.message || type);
+      useCaptureWorker = false;
+      workerCapturePending = false;
+      return;
+    }
+
+    workerCapturePending = false;
+
+    if (type === 'frame-blob') {
+      runInferenceFromBlob(event.data.buffer, event.data.width, event.data.height);
+      return;
+    }
+  }
+
+  function finishAnalyzeCycle(startedAt) {
+    const elapsed = performance.now() - startedAt;
+    lastAnalyzeMs = elapsed;
+    inferenceSmoothMs = inferenceSmoothMs * 0.8 + elapsed * 0.2;
+    safeCaptureIntervalMs = Math.max(frameIntervalMs, Math.round(inferenceSmoothMs * 1.1));
+    updateInferenceBadge();
+    analyzeInFlight = false;
+
+    if (analyzePending) {
+      analyzePending = false;
+      lastCaptureTime = 0;
+    }
+  }
+
+  function deliverDetections(data, targetWidth, targetHeight) {
+    if (window.Dashboard) {
+      window.Dashboard.handleDetections({
+        ...data,
+        imageWidth: targetWidth,
+        imageHeight: targetHeight,
+      });
+    }
+  }
+
+  async function runInferenceFromBlob(buffer, targetWidth, targetHeight) {
+    if (analyzeInFlight) {
+      analyzePending = true;
+      return;
+    }
+
+    analyzeInFlight = true;
+    const startedAt = performance.now();
+    const { cameraId, zone } = getCameraContext();
+
+    try {
+      const blob = new Blob([buffer], { type: 'image/jpeg' });
+      const formData = new FormData();
+      formData.append('image', blob, 'frame.jpg');
+      formData.append('cameraId', cameraId);
+      formData.append('zone', zone);
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Frame analysis failed:', response.status, errorText);
+        return;
+      }
+
+      const data = await response.json();
+      framesAnalyzed += 1;
+      deliverDetections(data, targetWidth, targetHeight);
+    } catch (error) {
+      console.error('Frame analysis failed:', error.message);
+    } finally {
+      finishAnalyzeCycle(startedAt);
+    }
+  }
+
+  async function runInferenceFromBitmap(imageBitmap, targetWidth, targetHeight) {
+    if (analyzeInFlight) {
+      analyzePending = true;
+      imageBitmap.close();
+      return;
+    }
+
+    if (!window.YoloClient?.isActive()) {
+      imageBitmap.close();
+      return;
+    }
+
+    analyzeInFlight = true;
+    const startedAt = performance.now();
+    const { cameraId, zone } = getCameraContext();
+
+    try {
+      const data = await window.YoloClient.analyzeImageBitmap(
+        imageBitmap,
+        targetWidth,
+        targetHeight,
+        cameraId,
+        zone,
+      );
+      framesAnalyzed += 1;
+      deliverDetections(data, targetWidth, targetHeight);
+    } catch (error) {
+      console.error('Frame analysis failed:', error.message);
+    } finally {
+      finishAnalyzeCycle(startedAt);
+    }
   }
 
   function ensureCaptureCanvas(width, height) {
@@ -654,8 +926,8 @@ window.VideoFeed = (() => {
     badge.textContent = `● AI Inference ~${fps} fps`;
   }
 
-  async function captureAndAnalyzeFrame() {
-    if (!liveVideo.videoWidth) return;
+  async function captureAndAnalyzeFrameMainThread() {
+    if (!liveVideo.videoWidth || isPaused) return;
 
     if (analyzeInFlight) {
       analyzePending = true;
@@ -664,21 +936,13 @@ window.VideoFeed = (() => {
 
     analyzeInFlight = true;
     const startedAt = performance.now();
-
-    const sourceWidth = liveVideo.videoWidth;
-    const sourceHeight = liveVideo.videoHeight;
-    const scale = Math.min(1, MAX_CAPTURE_WIDTH / sourceWidth);
-    const targetWidth = Math.round(sourceWidth * scale);
-    const targetHeight = Math.round(sourceHeight * scale);
+    const { targetWidth, targetHeight } = getCaptureDimensions();
+    const { cameraId, zone } = getCameraContext();
 
     ensureCaptureCanvas(targetWidth, targetHeight);
-    // drawImage lê o frame bruto do vídeo — sem filtros CSS do overlay CCTV
     captureCtx.drawImage(liveVideo, 0, 0, targetWidth, targetHeight);
 
     try {
-      const cameraId = selectedCamera?.id || 'CAM-01';
-      const zone = selectedCamera?.zone || 'Unknown Zone';
-
       if (window.YoloClient?.isActive()) {
         const data = await window.YoloClient.analyzeCanvas(
           captureCanvas,
@@ -687,18 +951,8 @@ window.VideoFeed = (() => {
           cameraId,
           zone,
         );
-
         framesAnalyzed += 1;
-        lastAnalyzeMs = performance.now() - startedAt;
-        updateInferenceBadge();
-
-        if (window.Dashboard) {
-          window.Dashboard.handleDetections({
-            ...data,
-            imageWidth: targetWidth,
-            imageHeight: targetHeight,
-          });
-        }
+        deliverDetections(data, targetWidth, targetHeight);
         return;
       }
 
@@ -726,26 +980,16 @@ window.VideoFeed = (() => {
 
       const data = await response.json();
       framesAnalyzed += 1;
-      lastAnalyzeMs = performance.now() - startedAt;
-      updateInferenceBadge();
-
-      if (window.Dashboard) {
-        window.Dashboard.handleDetections({
-          ...data,
-          imageWidth: targetWidth,
-          imageHeight: targetHeight,
-        });
-      }
+      deliverDetections(data, targetWidth, targetHeight);
     } catch (error) {
       console.error('Frame analysis failed:', error.message);
     } finally {
-      analyzeInFlight = false;
-
-      if (analyzePending) {
-        analyzePending = false;
-        captureAndAnalyzeFrame();
-      }
+      finishAnalyzeCycle(startedAt);
     }
+  }
+
+  async function captureAndAnalyzeFrame() {
+    await scheduleFrameCapture();
   }
 
   async function handleFileUpload(event) {

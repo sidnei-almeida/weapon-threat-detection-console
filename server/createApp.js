@@ -9,6 +9,7 @@ const axios = require('axios');
 const threatEngine = require('./services/threatEngine');
 const { listVideoCameras } = require('./services/cameraList');
 const { isRoboflowConfigured } = require('./services/detectionConfig');
+const { getInferenceFps } = require('./services/runtimeConfig');
 const { log, logThreat } = require('./utils/logger');
 
 function createApp(backend) {
@@ -229,6 +230,7 @@ function createApp(backend) {
       backend: roboflowActive
         ? 'roboflow'
         : (clientInference || !useLocalYolo ? 'yolo-client' : 'yolo-local'),
+      inferenceFps: getInferenceFps(),
     });
   });
 

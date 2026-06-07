@@ -12,6 +12,7 @@ window.ThreatVisionBoot = (() => {
         const data = await response.json();
         clientInference = Boolean(data.clientInference);
         window.__THREATVISION_CLIENT_INFERENCE__ = clientInference;
+        window.__THREATVISION_INFERENCE_FPS__ = data.inferenceFps;
         return data;
       },
     },
