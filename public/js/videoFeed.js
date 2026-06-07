@@ -14,7 +14,8 @@ window.VideoFeed = (() => {
   let inferenceSmoothMs = 0;
   const DEFAULT_INFERENCE_FPS = 12;
   const MIN_INFERENCE_FPS = 1;
-  const MAX_INFERENCE_FPS = 30;
+  const MAX_INFERENCE_FPS = 60;
+  const MIN_FRAME_INTERVAL_MS = 16; /* ~60 FPS ceiling */
 
   function resolveFrameIntervalMs() {
     const raw = window.__THREATVISION_INFERENCE_FPS__;
@@ -22,7 +23,7 @@ window.VideoFeed = (() => {
     const target = Number.isFinite(fps)
       ? Math.min(MAX_INFERENCE_FPS, Math.max(MIN_INFERENCE_FPS, fps))
       : DEFAULT_INFERENCE_FPS;
-    return Math.max(50, Math.round(1000 / target));
+    return Math.max(MIN_FRAME_INTERVAL_MS, Math.round(1000 / target));
   }
 
   let frameIntervalMs = resolveFrameIntervalMs();

@@ -1,6 +1,6 @@
 const DEFAULT_INFERENCE_FPS = 12;
 const MIN_INFERENCE_FPS = 1;
-const MAX_INFERENCE_FPS = 30;
+const MAX_INFERENCE_FPS = 60;
 
 function getInferenceFps() {
   const parsed = Number.parseFloat(process.env.INFERENCE_FPS);
