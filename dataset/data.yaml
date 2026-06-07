@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['gun', 'knife', 'person_with_mask']
+
+roboflow:
+  workspace: emotion-recognition-mcwg0
+  project: weapon-detection-pgqnr-yvlqg-gduy2
+  version: dataset
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/emotion-recognition-mcwg0/weapon-detection-pgqnr-yvlqg-gduy2/dataset/dataset

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThreatVision Console</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <!-- NAVBAR TOPO -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="brand-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2L4 5.5V11c0 5.25 3.5 10.15 8 11.35C16.5 21.15 20 16.25 20 11V5.5L12 2z"/>
+        </svg>
+      </div>
+      <span class="brand-wordmark">
+        <span class="brand-text brand-text--bold">Threat</span>
+        <span class="brand-separator" aria-hidden="true"></span>
+        <span class="brand-text brand-text--light">Vision</span>
+      </span>
+      <span class="brand-slash" aria-hidden="true">/</span>
+      <span class="brand-console">Console</span>
+    </div>
+    <div class="navbar-tabs">
+      <button class="nav-tab active" data-tab="live">Live Monitor</button>
+      <button class="nav-tab" data-tab="upload">
+        <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+        Upload Review
+      </button>
+      <button class="nav-tab" data-tab="queue">
+        Incident Queue
+        <span class="badge-count" id="incidentCount">0</span>
+      </button>
+      <button class="nav-tab" data-tab="analytics">Analytics</button>
+    </div>
+    <div class="navbar-right">
+      <span class="build-label">Build 240606 · v1.3</span>
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-text">ONLINE</span>
+        <span class="status-divider"></span>
+        <span class="status-count"><span id="statusAlertCount">0</span> ▸ <span id="statusCameraTotal">28</span></span>
+      </div>
+      <button class="btn-icon notification-btn" id="notificationBtn" type="button">
+        <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notifBadge" aria-hidden="true"></span>
+      </button>
+      <div class="user-avatar">JH</div>
+    </div>
+  </nav>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="main-content">
+
+    <!-- COLUNA ESQUERDA -->
+    <aside class="sidebar-left">
+      <div class="sidebar-section camera-source-block">
+        <label class="section-label section-label-accent">CAMERA SOURCE</label>
+        <div class="camera-selector-wrap">
+          <div class="camera-selector" id="cameraSelector" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+            <span class="camera-name" id="cameraName">Carregando câmeras...</span>
+            <svg class="camera-chevron icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="camera-dropdown" id="cameraDropdown" hidden>
+            <ul class="camera-dropdown-list" id="cameraDropdownList" role="listbox"></ul>
+          </div>
+        </div>
+        <div class="camera-status-row">
+          <div class="camera-status is-offline" id="cameraStatus">
+            <span class="camera-status-dot" aria-hidden="true"></span>
+            <span class="camera-status-text" id="cameraStatusText">Offline</span>
+          </div>
+          <div class="camera-status-meta">
+            <span class="camera-timestamp" id="liveTime">--:-- --</span>
+            <span class="signal-bars" id="cameraSignalBars" aria-hidden="true">
+              <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
+                <rect x="0" y="6" width="3" height="4" rx="1" fill="#22C55E" opacity="0.4"/>
+                <rect x="4" y="4" width="3" height="6" rx="1" fill="#22C55E" opacity="0.6"/>
+                <rect x="8" y="2" width="3" height="8" rx="1" fill="#22C55E" opacity="0.8"/>
+                <rect x="12" y="0" width="3" height="10" rx="1" fill="#22C55E"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section threat-context-block">
+        <div class="threat-context-header">THREAT CONTEXT</div>
+
+        <div class="stat-cards-row">
+          <div class="stat-card">
+            <span class="stat-card-label">Risk Level</span>
+            <span class="stat-card-value" id="riskStatValue"><span class="ctx-empty" aria-hidden="true"></span></span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-label">Confidence</span>
+            <span class="stat-card-value ctx-val--mono" id="confidenceValue"><span class="ctx-empty" aria-hidden="true"></span></span>
+          </div>
+        </div>
+
+        <div class="trend-row">
+          <span class="trend-pill trend-pill--stable" id="trendValue">
+            <span class="trend-pill-dot"></span>
+            STABLE
+          </span>
+        </div>
+
+        <div class="context-rows">
+          <div class="ctx-row">
+            <div class="ctx-row-left">
+              <span class="ctx-icon"><svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
+              <span class="ctx-key">Object Type</span>
+            </div>
+            <span class="ctx-val" id="ctxObjectType"><span class="ctx-empty" aria-hidden="true"></span></span>
+          </div>
+          <div class="ctx-row">
+            <div class="ctx-row-left">
+              <span class="ctx-icon"><svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7l-2 5h4l-2 5"/><path d="M10 12l-2 5"/><path d="M14 12l2 5"/></svg></span>
+              <span class="ctx-key">Motion State</span>
+            </div>
+            <span class="ctx-val" id="ctxMotion"><span class="ctx-empty" aria-hidden="true"></span></span>
+          </div>
+          <div class="ctx-row">
+            <div class="ctx-row-left">
+              <span class="ctx-icon"><svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+              <span class="ctx-key">Zone</span>
+            </div>
+            <span class="ctx-val" id="ctxZone"><span class="ctx-empty" aria-hidden="true"></span></span>
+          </div>
+          <div class="ctx-row">
+            <div class="ctx-row-left">
+              <span class="ctx-icon"><svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              <span class="ctx-key">Visibility</span>
+            </div>
+            <span class="ctx-val" id="ctxVisibility"><span class="ctx-empty" aria-hidden="true"></span></span>
+          </div>
+          <div class="ctx-row">
+            <div class="ctx-row-left">
+              <span class="ctx-icon"><svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+              <span class="ctx-key">Violence</span>
+            </div>
+            <span class="ctx-val" id="ctxViolence"><span class="ctx-empty" aria-hidden="true"></span></span>
+          </div>
+          <div class="ctx-row">
+            <div class="ctx-row-left">
+              <span class="ctx-icon"><svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 3"/><path d="M9 3h6"/><path d="M12 3v2"/></svg></span>
+              <span class="ctx-key">Time in Frame</span>
+            </div>
+            <span class="ctx-val ctx-val--mono" id="ctxTimeInFrame"><span class="ctx-empty" aria-hidden="true"></span></span>
+          </div>
+          <div class="ctx-row">
+            <div class="ctx-row-left">
+              <span class="ctx-icon"><svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+              <span class="ctx-key">First Detected</span>
+            </div>
+            <span class="ctx-val ctx-val--mono" id="ctxFirstDetected"><span class="ctx-empty" aria-hidden="true"></span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section confidence-trend-block">
+        <label class="section-label section-label-accent">CONFIDENCE TREND (30 SEC)</label>
+        <div class="confidence-trend-wrap">
+          <div class="confidence-chart-y-labels" aria-hidden="true">
+            <span>100%</span>
+            <span>50%</span>
+            <span>0%</span>
+          </div>
+          <div class="confidence-chart-shell">
+            <div class="confidence-chart-area" id="confidenceChartArea">
+              <svg id="confidenceTrendSvg" class="confidence-trend-svg" preserveAspectRatio="none" aria-hidden="true"></svg>
+              <div class="confidence-chart-tooltip" id="confidenceChartTooltip" hidden></div>
+            </div>
+            <div class="confidence-chart-x-labels" aria-hidden="true">
+              <span>10s</span>
+              <span>20s</span>
+              <span>30s</span>
+              <span>40s</span>
+              <span>50s</span>
+              <span>60s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section target-score-block">
+        <label class="section-label section-label-accent">TARGET SCORE</label>
+        <div class="target-score-display">
+          <div class="target-score-header">
+            <span class="target-score-badge target-score-badge--low" id="targetScoreLevel">Low</span>
+            <span class="target-score-num target-score-num--low" id="targetScoreNum">0</span>
+          </div>
+          <div class="target-score-bar-track">
+            <div class="target-score-bar-fill target-score-bar-fill--low" id="targetScoreBarFill" style="width: 0%"></div>
+          </div>
+          <div class="target-score-micro-stats">
+            <div class="target-score-micro-stat">
+              <span class="target-score-micro-label">Avg Score</span>
+              <span class="target-score-micro-value" id="targetScoreAvg">0</span>
+            </div>
+            <div class="target-score-micro-stat">
+              <span class="target-score-micro-label">Peak Today</span>
+              <span class="target-score-micro-value" id="targetScorePeak">0</span>
+            </div>
+            <div class="target-score-micro-stat">
+              <span class="target-score-micro-label">Events</span>
+              <span class="target-score-micro-value" id="targetScoreEvents">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section detection-history-block">
+        <label class="section-label section-label-accent">DETECTION HISTORY</label>
+        <div class="detection-history-list" id="detectionHistoryList">
+          <div class="detection-history-row" style="--row-opacity: 1">
+            <span class="detection-history-left">
+              <span class="detection-history-dot detection-history-dot--clear" aria-hidden="true"></span>
+              <span class="detection-history-label">No Detection</span>
+            </span>
+            <span class="detection-history-time">12s ago</span>
+          </div>
+          <div class="detection-history-row" style="--row-opacity: 0.75">
+            <span class="detection-history-left">
+              <span class="detection-history-dot detection-history-dot--threat" aria-hidden="true"></span>
+              <span class="detection-history-label">Motion Detected</span>
+            </span>
+            <span class="detection-history-time">1m ago</span>
+          </div>
+          <div class="detection-history-row" style="--row-opacity: 0.55">
+            <span class="detection-history-left">
+              <span class="detection-history-dot detection-history-dot--clear" aria-hidden="true"></span>
+              <span class="detection-history-label">No Detection</span>
+            </span>
+            <span class="detection-history-time">3m ago</span>
+          </div>
+          <div class="detection-history-row detection-history-row--last" style="--row-opacity: 0.35">
+            <span class="detection-history-left">
+              <span class="detection-history-dot detection-history-dot--clear" aria-hidden="true"></span>
+              <span class="detection-history-label">No Detection</span>
+            </span>
+            <span class="detection-history-time">7m ago</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section zone-activity-block">
+        <label class="section-label section-label-accent">ZONE ACTIVITY</label>
+        <div class="zone-heatmap-grid" id="zoneHeatmapGrid" aria-hidden="true">
+          <span class="zone-cell" data-level="none"></span>
+          <span class="zone-cell" data-level="low"></span>
+          <span class="zone-cell" data-level="none"></span>
+          <span class="zone-cell" data-level="high"></span>
+          <span class="zone-cell" data-level="alert"></span>
+          <span class="zone-cell" data-level="low"></span>
+          <span class="zone-cell" data-level="none"></span>
+          <span class="zone-cell" data-level="none"></span>
+          <span class="zone-cell" data-level="low"></span>
+          <span class="zone-cell" data-level="none"></span>
+          <span class="zone-cell" data-level="high"></span>
+          <span class="zone-cell" data-level="none"></span>
+        </div>
+        <div class="zone-heatmap-legend">
+          <span class="zone-legend-item"><span class="zone-legend-dot zone-legend-dot--none"></span>No Activity</span>
+          <span class="zone-legend-item"><span class="zone-legend-dot zone-legend-dot--low"></span>Low</span>
+          <span class="zone-legend-item"><span class="zone-legend-dot zone-legend-dot--high"></span>High</span>
+        </div>
+      </div>
+
+      <footer class="sidebar-status-footer">
+        <div class="status-footer-row status-footer-row--top">
+          <div class="status-ai-system">
+            <span class="status-ai-dot" aria-hidden="true"></span>
+            <span class="status-ai-label">AI System</span>
+            <span class="status-ai-state">Operational</span>
+          </div>
+          <div class="status-cameras-online">
+            <svg class="status-camera-icon icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span class="status-cameras-count">
+              <span class="status-cameras-online-num" id="camerasOnlineNum">24</span><span class="status-cameras-sep">/</span><span class="status-cameras-total" id="camerasOnlineTotal">28</span>
+            </span>
+          </div>
+        </div>
+        <div class="status-footer-row status-footer-row--bottom">
+          <div class="status-footer-metric">
+            <span class="status-footer-label">Total Inference</span>
+            <span class="status-footer-value" id="modelInference">-- ms</span>
+          </div>
+          <div class="status-footer-metric">
+            <span class="status-footer-label">Uptime</span>
+            <span class="status-footer-value" id="uptime">0d 0h 0m</span>
+          </div>
+        </div>
+      </footer>
+    </aside>
+
+    <!-- COLUNA CENTRAL -->
+    <section class="center-panel">
+      <div class="video-container">
+        <div class="video-wrapper" id="videoWrapper">
+          <span class="video-datetime" id="videoDatetime">--/--/---- --:--:-- --</span>
+          <span class="cam-label-pill">CAM <span id="camNumber">--</span></span>
+          <button class="btn-icon fullscreen-btn" type="button" aria-label="Fullscreen">
+            <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+
+          <div class="video-corner-brackets" aria-hidden="true">
+            <svg class="video-corner video-corner--tl" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M0 20V0H20" stroke="currentColor" stroke-width="1.5"/></svg>
+            <svg class="video-corner video-corner--tr" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M0 20V0H20" stroke="currentColor" stroke-width="1.5"/></svg>
+            <svg class="video-corner video-corner--bl" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M0 20V0H20" stroke="currentColor" stroke-width="1.5"/></svg>
+            <svg class="video-corner video-corner--br" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M0 20V0H20" stroke="currentColor" stroke-width="1.5"/></svg>
+          </div>
+
+          <div class="cctv-feed-layer" id="cctvFeedLayer">
+            <video id="liveVideo" autoplay muted playsinline style="display:none"></video>
+            <img id="staticFrame" src="" alt="Frame analisado" style="display:none"/>
+
+            <div id="cctv-overlay" aria-hidden="true" hidden>
+              <div class="cctv-vignette"></div>
+              <div class="cctv-scanlines"></div>
+              <svg class="cctv-noise" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                <filter id="noise-filter">
+                  <feTurbulence
+                    type="fractalNoise"
+                    baseFrequency="0.75"
+                    numOctaves="4"
+                    stitchTiles="stitch"
+                    result="noiseOut"/>
+                  <feColorMatrix type="saturate" values="0" in="noiseOut" result="grayNoise"/>
+                  <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" result="blended"/>
+                  <feComponentTransfer in="blended">
+                    <feFuncA type="linear" slope="0.06"/>
+                  </feComponentTransfer>
+                </filter>
+                <rect width="100%" height="100%" filter="url(#noise-filter)"/>
+              </svg>
+              <div class="cctv-tear" id="cctvTear"></div>
+              <div class="cctv-hud-tl"></div>
+              <div class="cctv-hud-tr"></div>
+              <div class="cctv-hud-bl"></div>
+              <div class="cctv-hud-br"></div>
+              <div class="cctv-rec">
+                <span class="cctv-rec-dot"></span>
+                <span class="cctv-rec-label">REC</span>
+              </div>
+            </div>
+            <canvas id="detectionCanvas" class="detection-canvas"></canvas>
+          </div>
+          <div class="video-placeholder" id="videoPlaceholder">
+            <div class="placeholder-icon">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </div>
+            <p class="placeholder-primary">Aguardando feed da câmera</p>
+            <p class="placeholder-sub">Ative a câmera ou faça upload de uma imagem</p>
+          </div>
+          <div class="detection-tooltip" id="detectionTooltip" style="display:none">
+            <div class="tooltip-class" id="tooltipClass">Weapon: Handgun</div>
+            <div class="tooltip-confidence" id="tooltipConfidence">Confidence: 94%</div>
+          </div>
+          <div class="high-risk-badge" id="highRiskBadge" style="display:none">HIGH RISK</div>
+          <div class="ai-inference-badge">● AI Inference</div>
+        </div>
+
+        <div class="video-controls">
+          <button class="btn-control btn-record" id="recordBtn" title="Gravar" type="button" aria-label="Gravar">
+            <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="6"/></svg>
+          </button>
+          <button class="btn-control" id="playPauseBtn" title="Play/Pause" type="button" aria-label="Play/Pause">
+            <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
+          <button class="btn-control" id="frameStepBtn" title="Avançar frame" type="button" aria-label="Avançar frame">
+            <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16"/><path d="M19 4l-10 8 10 8V4"/></svg>
+          </button>
+          <button class="btn-control" id="screenshotBtn" title="Screenshot" type="button" aria-label="Screenshot">
+            <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </button>
+          <input type="file" id="frameFileInput" accept="image/*" hidden>
+          <select class="speed-select" id="zoomSelect" aria-label="Velocidade de zoom">
+            <option value="1.0">1.0x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2.0">2.0x</option>
+          </select>
+          <button class="btn-start-camera" id="startCameraBtn" type="button">
+            <svg class="icon-svg btn-start-camera-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Iniciar Feed
+          </button>
+        </div>
+      </div>
+
+      <div class="timeline-container">
+        <div class="timeline-header">
+          <span class="timeline-header-label">EVENT TIMELINE</span>
+        </div>
+        <div class="timeline-bar" id="timelineBar">
+          <div class="timeline-progress" id="timelineProgress"></div>
+          <div class="timeline-markers" id="timelineTrack"></div>
+          <div class="timeline-playhead" id="timelineCursor"></div>
+          <div class="timeline-track-tooltip" id="timelineTooltip" hidden></div>
+        </div>
+        <div class="timeline-thumbnails" id="timelineThumbnails" hidden aria-hidden="true"></div>
+        <div class="timeline-footer">
+          <div class="timeline-tags">
+            <span class="timeline-tag timeline-tag--event">
+              <span class="timeline-tag-dot" aria-hidden="true"></span>
+              Detected Event
+            </span>
+            <span class="timeline-tag timeline-tag--bookmark">
+              <svg class="icon-svg timeline-tag-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              Bookmark
+            </span>
+          </div>
+          <label class="tactical-switch">
+            <span class="switch-label" id="timelineToggleText">SHOW DETECTIONS</span>
+            <div class="switch-track is-on" id="detectionSwitchTrack">
+              <div class="switch-thumb"></div>
+            </div>
+            <input type="checkbox" id="showDetectionsOnly" checked hidden>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLUNA DIREITA -->
+    <aside class="sidebar-right threat-event-panel">
+      <div class="threat-event-header">
+        <span class="threat-event-header-label">THREAT EVENT</span>
+        <span class="event-id" id="eventId">ID: <span class="event-empty">— —</span></span>
+      </div>
+
+      <div class="event-details">
+        <div class="event-row">
+          <div class="event-row-left">
+            <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+            <span class="event-key">Detection Time</span>
+          </div>
+          <span class="event-val event-val--mono" id="detectionTime"><span class="event-empty">— —</span></span>
+        </div>
+        <div class="event-row">
+          <div class="event-row-left">
+            <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
+            <span class="event-key">Object Class</span>
+          </div>
+          <span class="event-val event-val--mono" id="objectClass"><span class="event-empty">— —</span></span>
+        </div>
+        <div class="event-row">
+          <div class="event-row-left">
+            <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
+            <span class="event-key">Confidence</span>
+          </div>
+          <span class="event-val event-val--mono" id="eventConfidence"><span class="event-empty">— —</span></span>
+        </div>
+        <div class="event-row">
+          <div class="event-row-left">
+            <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <span class="event-key">Location / Zone</span>
+          </div>
+          <span class="event-val event-val--mono" id="eventZone"><span class="event-empty">— —</span></span>
+        </div>
+        <div class="event-row">
+          <div class="event-row-left">
+            <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+            <span class="event-key">Escalation Status</span>
+          </div>
+          <span class="event-val event-val--mono" id="escalationStatus"><span class="event-empty">— —</span></span>
+        </div>
+        <div class="event-row event-row--multiline">
+          <div class="event-row-left">
+            <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span>
+            <span class="event-key">Recommended Action</span>
+          </div>
+          <span class="event-val event-val--mono" id="recommendedAction"><span class="event-empty">— —</span></span>
+        </div>
+      </div>
+
+      <button class="escalate-btn" id="escalateBtn" type="button">
+        <div class="escalate-btn__corner escalate-btn__corner--tl"></div>
+        <div class="escalate-btn__corner escalate-btn__corner--tr"></div>
+        <div class="escalate-btn__corner escalate-btn__corner--bl"></div>
+        <div class="escalate-btn__corner escalate-btn__corner--br"></div>
+
+        <div class="escalate-btn__scanline"></div>
+
+        <div class="escalate-btn__content">
+          <svg class="escalate-btn__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span class="escalate-btn__label">ESCALATE NOW</span>
+          <span class="escalate-btn__sublabel">IMMEDIATE RESPONSE</span>
+        </div>
+
+        <div class="escalate-btn__ticker">
+          <span>SYS://ALERT_ESCALATION_PROTOCOL</span>
+        </div>
+      </button>
+
+      <div class="event-action-row">
+        <button class="btn-secondary-action" id="btnReview" type="button">
+          <svg class="icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          Mark as Reviewed
+        </button>
+        <button class="btn-secondary-action" id="btnFalseAlarm" type="button">
+          <svg class="icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          False Alarm
+        </button>
+      </div>
+
+      <section class="ai-summary-section">
+        <div class="ai-summary-header-row">
+          <div class="ai-summary-header-left">
+            <svg class="icon-svg ai-summary-star" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span class="ai-summary-title">AI SUMMARY</span>
+          </div>
+          <div class="ai-summary-header-right">
+            <span class="ai-summary-generated-label">GENERATED</span>
+            <span class="ai-summary-generated-time" id="aiSummaryTime">--:-- --</span>
+          </div>
+        </div>
+        <div class="ai-summary-body" id="aiSummaryBody"></div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- MODAL DE UPLOAD -->
+  <div class="modal-overlay" id="uploadModal" style="display:none">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Upload Review</h2>
+        <button class="btn-icon modal-close" id="closeUploadModal" type="button">
+          <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="upload-area" id="dropArea">
+        <div class="upload-icon">
+          <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <p>Arraste uma imagem aqui ou clique para selecionar</p>
+        <p class="upload-sub">Suporta JPG, PNG, WEBP • Máx. 10MB</p>
+        <input type="file" id="uploadModalInput" accept="image/*" style="display:none"/>
+        <button class="btn-upload-select" id="selectFileBtn" type="button">Selecionar Arquivo</button>
+        <p id="selectedFileName" class="upload-sub"></p>
+      </div>
+      <div class="upload-config">
+        <div class="config-row">
+          <label>Camera ID:</label>
+          <input type="text" id="uploadCameraId" value="CAM-07"/>
+        </div>
+        <div class="config-row">
+          <label>Zone:</label>
+          <input type="text" id="uploadZone" value="Lobby Entrance (Zone A1)"/>
+        </div>
+      </div>
+      <button class="btn-analyze-upload" id="btnAnalyzeUpload" disabled type="button">
+        <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Analisar Imagem
+      </button>
+    </div>
+  </div>
+
+  <script src="js/charts.js"></script>
+  <script src="js/cctvOverlay.js"></script>
+  <script src="js/videoFeed.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
