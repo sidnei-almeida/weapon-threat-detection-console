@@ -3,6 +3,9 @@ node_modules
 .git
 /videos/
 /models/
-test
-scripts/test-*
+/images/
+/samples/
+/dataset/
+/scripts/
+/test/
 *.log

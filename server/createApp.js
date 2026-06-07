@@ -7,17 +7,18 @@ const morgan = require('morgan');
 const multer = require('multer');
 const axios = require('axios');
 
-const roboflow = require('./services/roboflow');
 const threatEngine = require('./services/threatEngine');
-const { listVideoCameras } = require('./services/videoCameras');
+const { listVideoCameras } = require('./services/cameraList');
 const { isRoboflowConfigured } = require('./services/detectionConfig');
 const { log, logThreat } = require('./utils/logger');
 
-function createApp(options = {}) {
+function createApp(backend) {
   const {
-    useLocalYolo = false,
+    warmUpModel: warmUpModelCore,
+    analyzeBufferCore,
     clientInference = false,
-  } = options;
+    useLocalYolo = false,
+  } = backend;
 
   const app = express();
 
@@ -36,71 +37,16 @@ function createApp(options = {}) {
   }
 
   async function warmUpModel() {
-    if (clientInference) {
-      return {
-        backend: 'yolo-client',
-        clientInference: true,
-        ready: true,
-      };
-    }
-
-    if (isRoboflowConfigured() && process.env.DETECTION_BACKEND === 'roboflow') {
-      return { backend: 'roboflow', ready: true };
-    }
-
-    if (!useLocalYolo) {
-      return {
-        backend: 'yolo-client',
-        clientInference: true,
-        ready: true,
-      };
-    }
-
-    const localYolo = require('./services/localYolo');
-    await localYolo.getSession();
-    log('INFO', 'YOLO local pronto para inferência');
-    return { backend: 'yolo-local', ready: true };
+    return warmUpModelCore({ useLocalYolo, clientInference });
   }
 
   async function analyzeBuffer(buffer, cameraId, zone) {
-    let processedDetections;
-    let imageMeta;
-    let backend;
-
-    if (isRoboflowConfigured() && process.env.DETECTION_BACKEND === 'roboflow') {
-      const resizedBuffer = await roboflow.resizeImageForApi(buffer);
-      const [weaponResult, maskResult] = await Promise.all([
-        roboflow.analyzeImage(resizedBuffer, 'image/jpeg'),
-        roboflow.analyzeMask(resizedBuffer, 'image/jpeg'),
-      ]);
-
-      const combinedPredictions = [
-        ...(weaponResult.predictions || []),
-        ...(maskResult.predictions || []),
-      ];
-
-      imageMeta = weaponResult.image || maskResult.image || { width: 1280, height: 720 };
-      processedDetections = roboflow.processDetections(
-        { predictions: combinedPredictions, image: imageMeta },
-        cameraId,
-        zone,
-      );
-      backend = 'roboflow';
-    } else if (useLocalYolo) {
-      const localYolo = require('./services/localYolo');
-      const result = await localYolo.analyzeBufferLocal(buffer, cameraId, zone);
-      processedDetections = result.processedDetections;
-      imageMeta = result.imageMeta;
-      backend = result.backend;
-
-      if (result.rawCount > 0) {
-        log('INFO', `YOLO local: ${result.rawCount} detecção(ões) em ${cameraId}`);
-      }
-    } else {
-      const error = new Error('Inferência disponível no navegador (YOLO client-side).');
-      error.code = 'CLIENT_INFERENCE_REQUIRED';
-      throw error;
-    }
+    const { processedDetections, imageMeta, backend: inferenceBackend } = await analyzeBufferCore(
+      buffer,
+      cameraId,
+      zone,
+      { useLocalYolo, clientInference },
+    );
 
     for (const detection of processedDetections) {
       threatEngine.addEvent(detection);
@@ -122,7 +68,7 @@ function createApp(options = {}) {
     return {
       processedDetections,
       imageMeta,
-      backend,
+      backend: inferenceBackend,
     };
   }
 
@@ -145,7 +91,7 @@ function createApp(options = {}) {
 
       const cameraId = req.body.cameraId || 'CAM-01';
       const zone = req.body.zone || 'Unknown Zone';
-      const { processedDetections, imageMeta, backend } = await analyzeBuffer(
+      const { processedDetections, imageMeta, backend: inferenceBackend } = await analyzeBuffer(
         req.file.buffer,
         cameraId,
         zone,
@@ -157,7 +103,7 @@ function createApp(options = {}) {
         count: processedDetections.length,
         imageWidth: imageMeta.width,
         imageHeight: imageMeta.height,
-        backend,
+        backend: inferenceBackend,
       });
     } catch (error) {
       if (error.code === 'CLIENT_INFERENCE_REQUIRED') {

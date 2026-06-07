@@ -3,7 +3,8 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 10,
-      "memory": 1024
+      "memory": 1024,
+      "excludeFiles": "{node_modules/onnxruntime-node/**,node_modules/@img/**,models/**,videos/**,images/**,dataset/**,scripts/**,test/**,src/yolo/**,public/videos/**,public/models/**,public/**,server/services/localYolo.js,server/services/roboflow.js,server/services/videoCameras.js,server/backends/localDevBackend.js}"
     }
   },
   "rewrites": [

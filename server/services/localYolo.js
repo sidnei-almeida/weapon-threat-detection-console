@@ -2,7 +2,7 @@ const ort = require('onnxruntime-node');
 const { loadModel } = require('../../src/yolo/loadModel');
 const { preprocessBuffer, TARGET_WIDTH, TARGET_HEIGHT } = require('../../src/yolo/preprocessImage');
 const { postprocessDetections, DEFAULT_CONFIDENCE_THRESHOLD } = require('../../src/yolo/postprocessDetections');
-const { processDetections } = require('./roboflow');
+const { processDetections } = require('./detectionProcessing');
 const { log } = require('../utils/logger');
 
 let sessionPromise = null;
