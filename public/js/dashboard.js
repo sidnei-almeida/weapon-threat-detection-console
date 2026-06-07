@@ -185,7 +185,7 @@ window.Dashboard = (() => {
 
   function initSocketListeners() {
     socket.on('connected', (data) => {
-      console.log('ThreatVision conectado:', data.message);
+      console.log('ThreatVision connected:', data.message);
     });
 
     socket.on('detections', (data) => {
@@ -408,7 +408,7 @@ window.Dashboard = (() => {
     bodyEl.innerHTML = `
       <div class="ai-summary-waiting">
         <span class="ai-summary-waiting-dot" aria-hidden="true"></span>
-        <span class="ai-summary-waiting-text">Aguardando detecção...</span>
+        <span class="ai-summary-waiting-text">Awaiting detection...</span>
       </div>
       <div class="ai-summary-skeletons">
         ${createSkeletonBlock('THREAT ASSESSMENT', ['100%', '65%'], 0)}
@@ -476,7 +476,7 @@ window.Dashboard = (() => {
     reviewBtn.classList.remove('btn-review--done');
     reviewBtn.innerHTML = `
       <span class="btn-review-spinner" aria-hidden="true"></span>
-      <span class="btn-review-loading-label">PROCESSANDO...</span>
+      <span class="btn-review-loading-label">PROCESSING...</span>
     `;
   }
 
@@ -487,7 +487,7 @@ window.Dashboard = (() => {
     if (reviewBtn) {
       reviewBtn.classList.remove('btn-review--loading');
       reviewBtn.classList.add('btn-review--done');
-      reviewBtn.innerHTML = '✓ &nbsp;REVISADO';
+      reviewBtn.innerHTML = '✓ &nbsp;REVIEWED';
       reviewBtn.disabled = true;
     }
 
@@ -497,7 +497,7 @@ window.Dashboard = (() => {
     if (header && !header.querySelector('.threat-reviewed-badge')) {
       const badge = document.createElement('span');
       badge.className = 'threat-reviewed-badge';
-      badge.textContent = 'REVISADO';
+      badge.textContent = 'REVIEWED';
       header.appendChild(badge);
     }
 
@@ -539,7 +539,7 @@ window.Dashboard = (() => {
 
     fetch(`/api/events/${eventIdToClear}/false-alarm`, { method: 'PATCH' }).catch(() => {});
 
-    window.TN?.toast?.({ message: 'Evento descartado como falso alarme.', type: 'info' });
+    window.TN?.toast?.({ message: 'Event dismissed as false alarm.', type: 'info' });
 
     const panel = document.querySelector('.threat-event-panel, [data-panel="threat-event"]');
     if (panel) {
@@ -772,7 +772,7 @@ window.Dashboard = (() => {
           reviewInProgress = false;
           setEventValue('escalationStatus', 'Reviewed', 'escalation-reviewed');
           applyReviewedUI();
-          window.TN?.toast?.({ message: 'Evento marcado como revisado.', type: 'success' });
+          window.TN?.toast?.({ message: 'Event marked as reviewed.', type: 'success' });
         }, 900);
       };
     }
@@ -783,12 +783,12 @@ window.Dashboard = (() => {
         if (!currentEventId) return;
 
         window.TN.modal({
-          title: 'CONFIRMAR FALSO ALARME',
-          message: 'Marcar este evento como falso alarme irá encerrar o protocolo de ameaça e redefinir o painel. Esta ação será registrada no log.',
+          title: 'CONFIRM FALSE ALARM',
+          message: 'Marking this event as a false alarm will end the threat protocol and reset the panel. This action will be logged.',
           type: 'warning',
           showCancel: true,
-          confirmLabel: 'CONFIRMAR',
-          cancelLabel: 'CANCELAR',
+          confirmLabel: 'CONFIRM',
+          cancelLabel: 'CANCEL',
           onConfirm: () => runFalseAlarmSequence(),
         });
       });
@@ -890,7 +890,7 @@ window.Dashboard = (() => {
       };
       reader.readAsDataURL(uploadedFile);
     } catch (error) {
-      alert(`Erro ao analisar imagem: ${error.message}`);
+      alert(`Error analyzing image: ${error.message}`);
     } finally {
       button.textContent = originalText;
       button.disabled = !uploadedFile;

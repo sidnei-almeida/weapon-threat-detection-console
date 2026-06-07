@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,7 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body class="is-booting">
-  <div id="bootLoader" class="boot-loader" aria-live="polite" aria-busy="true" aria-label="Carregando ThreatVision">
+  <div id="bootLoader" class="boot-loader" aria-live="polite" aria-busy="true" aria-label="Loading ThreatVision">
     <div class="boot-loader__grid" aria-hidden="true"></div>
     <div class="boot-loader__glow" aria-hidden="true"></div>
 
@@ -36,13 +36,13 @@
         <div class="boot-loader__progress-bar" id="bootProgressBar"></div>
       </div>
 
-      <p class="boot-loader__status" id="bootStatus">INICIALIZANDO CONSOLE...</p>
+      <p class="boot-loader__status" id="bootStatus">INITIALIZING CONSOLE...</p>
 
       <ul class="boot-loader__steps" id="bootSteps" aria-hidden="true">
         <li data-step="connect"><span class="boot-step-dot"></span>Console</li>
-        <li data-step="model"><span class="boot-step-dot"></span>Modelo YOLO</li>
-        <li data-step="cameras"><span class="boot-step-dot"></span>Câmeras</li>
-        <li data-step="ready"><span class="boot-step-dot"></span>Pronto</li>
+        <li data-step="model"><span class="boot-step-dot"></span>YOLO Model</li>
+        <li data-step="cameras"><span class="boot-step-dot"></span>Cameras</li>
+        <li data-step="ready"><span class="boot-step-dot"></span>Ready</li>
       </ul>
     </div>
   </div>
@@ -86,6 +86,32 @@
         <span class="status-divider"></span>
         <span class="status-count"><span id="statusAlertCount">0</span> ▸ <span id="statusCameraTotal">28</span></span>
       </div>
+      <div class="github-links" aria-label="Project contributors on GitHub">
+        <a
+          href="https://github.com/sidnei-almeida"
+          class="github-link btn-icon"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Sidnei Almeida (@sidnei-almeida)"
+          aria-label="Sidnei Almeida on GitHub"
+        >
+          <svg class="icon-svg github-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.395-.135-.345-.72-1.395-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A8.203 8.203 0 0012 24c6.63 0 12-5.37 12-12S18.63 0 12 0z"/>
+          </svg>
+        </a>
+        <a
+          href="https://github.com/filipecunhaadv"
+          class="github-link btn-icon"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Filipe Cunha (@filipecunhaadv)"
+          aria-label="Filipe Cunha on GitHub"
+        >
+          <svg class="icon-svg github-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.395-.135-.345-.72-1.395-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A8.203 8.203 0 0012 24c6.63 0 12-5.37 12-12S18.63 0 12 0z"/>
+          </svg>
+        </a>
+      </div>
       <button class="btn-icon notification-btn" id="notificationBtn" type="button">
         <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="notif-badge" id="notifBadge" aria-hidden="true"></span>
@@ -103,7 +129,7 @@
         <label class="section-label section-label-accent">CAMERA SOURCE</label>
         <div class="camera-selector-wrap">
           <div class="camera-selector" id="cameraSelector" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
-            <span class="camera-name" id="cameraName">Carregando câmeras...</span>
+            <span class="camera-name" id="cameraName">Loading cameras...</span>
             <svg class="camera-chevron icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div class="camera-dropdown" id="cameraDropdown" hidden>
@@ -398,8 +424,8 @@
                 <circle cx="12" cy="13" r="4"/>
               </svg>
             </div>
-            <p class="placeholder-primary">Aguardando feed da câmera</p>
-            <p class="placeholder-sub">Ative a câmera ou faça upload de uma imagem</p>
+            <p class="placeholder-primary">Awaiting camera feed</p>
+            <p class="placeholder-sub">Activate a camera or upload an image</p>
           </div>
           <div class="detection-tooltip" id="detectionTooltip" style="display:none">
             <div class="tooltip-class" id="tooltipClass">Weapon: Handgun</div>
@@ -416,7 +442,7 @@
           <button class="btn-control" id="playPauseBtn" title="Play/Pause" type="button" aria-label="Play/Pause">
             <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           </button>
-          <button class="btn-control" id="frameStepBtn" title="Avançar frame" type="button" aria-label="Avançar frame">
+          <button class="btn-control" id="frameStepBtn" title="Step frame" type="button" aria-label="Step frame">
             <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16"/><path d="M19 4l-10 8 10 8V4"/></svg>
           </button>
           <button class="btn-control" id="screenshotBtn" title="Screenshot" type="button" aria-label="Screenshot">
@@ -584,7 +610,7 @@
           <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
         </div>
         <p>Arraste uma imagem aqui ou clique para selecionar</p>
-        <p class="upload-sub">Suporta JPG, PNG, WEBP • Máx. 10MB</p>
+        <p class="upload-sub">Supports JPG, PNG, WEBP • Max 10MB</p>
         <input type="file" id="uploadModalInput" accept="image/*" style="display:none"/>
         <button class="btn-upload-select" id="selectFileBtn" type="button">Selecionar Arquivo</button>
         <p id="selectedFileName" class="upload-sub"></p>

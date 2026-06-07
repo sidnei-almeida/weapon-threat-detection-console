@@ -60,8 +60,8 @@
         message = '',
         type = 'info',
         showCancel = true,
-        confirmLabel = 'CONFIRMAR',
-        cancelLabel = 'CANCELAR',
+        confirmLabel = 'CONFIRM',
+        cancelLabel = 'CANCEL',
         onConfirm,
         onCancel,
       } = options;

@@ -51,7 +51,7 @@
 
         <div class="esc-header">
           <div class="esc-alert-dot"></div>
-          <span class="esc-title">PROTOCOLO DE ESCALADA</span>
+          <span class="esc-title">ESCALATION PROTOCOL</span>
           <span class="esc-id">EVT-${evtLabel}</span>
         </div>
 
@@ -63,8 +63,8 @@
               </svg>
             </div>
             <div class="esc-step-info">
-              <span class="esc-step-label">NOTIFICANDO CENTRAL 190</span>
-              <span class="esc-step-sub">Polícia Militar · Prioridade ALTA</span>
+              <span class="esc-step-label">NOTIFYING 911 DISPATCH</span>
+              <span class="esc-step-sub">Emergency Services · HIGH Priority</span>
             </div>
             <div class="esc-step-status" id="escStatus1">
               <span class="esc-spinner"></span>
@@ -78,8 +78,8 @@
               </svg>
             </div>
             <div class="esc-step-info">
-              <span class="esc-step-label">ALERTANDO SEGURANÇA LOCAL</span>
-              <span class="esc-step-sub">Equipe de resposta · Setor ${zoneLabel}</span>
+              <span class="esc-step-label">ALERTING LOCAL SECURITY</span>
+              <span class="esc-step-sub">Response team · Sector ${zoneLabel}</span>
             </div>
             <div class="esc-step-status" id="escStatus2">
               <span class="esc-dot-wait">—</span>
@@ -93,8 +93,8 @@
               </svg>
             </div>
             <div class="esc-step-info">
-              <span class="esc-step-label">REGISTRANDO INCIDENTE</span>
-              <span class="esc-step-sub">Log forense · Timestamp UTC</span>
+              <span class="esc-step-label">LOGGING INCIDENT</span>
+              <span class="esc-step-sub">Forensic log · UTC timestamp</span>
             </div>
             <div class="esc-step-status" id="escStatus3">
               <span class="esc-dot-wait">—</span>
@@ -105,7 +105,7 @@
         <div class="esc-log" id="escLog"></div>
 
         <button class="esc-dismiss hidden" id="escDismiss" type="button">
-          FECHAR · INCIDENTE REGISTRADO
+          CLOSE · INCIDENT LOGGED
         </button>
 
         <div class="esc-ticker">
@@ -139,9 +139,9 @@
         stepId: 'escStep1',
         statusId: 'escStatus1',
         logs: [
-          '> CONECTANDO 190... DISCANDO...',
-          '> LINHA ESTABELECIDA · OPERADOR EM ESPERA',
-          '> [OK] CHAMADA CONFIRMADA · REF: POL-2026-0607',
+          '> CONNECTING 911... DIALING...',
+          '> LINE ESTABLISHED · OPERATOR ON HOLD',
+          '> [OK] CALL CONFIRMED · REF: EMS-2026-0607',
         ],
         duration: 2200,
       },
@@ -149,9 +149,9 @@
         stepId: 'escStep2',
         statusId: 'escStatus2',
         logs: [
-          '> NOTIFICANDO RÁDIO SEGURANÇA...',
-          '> EQUIPE DELTA · SETOR 01 · EM DESLOCAMENTO',
-          '> [OK] CONFIRMAÇÃO RECEBIDA · ETA 4min',
+          '> NOTIFYING SECURITY RADIO...',
+          '> DELTA TEAM · SECTOR 01 · EN ROUTE',
+          '> [OK] ACK RECEIVED · ETA 4min',
         ],
         duration: 1800,
       },
@@ -159,9 +159,9 @@
         stepId: 'escStep3',
         statusId: 'escStatus3',
         logs: [
-          '> REGISTRANDO INCIDENTE NO SERVIDOR...',
+          '> LOGGING INCIDENT TO SERVER...',
           `> HASH: 3f2a9d1c · TIMESTAMP: ${new Date().toISOString()}`,
-          `> [OK] LOG FORENSE SALVO · INCIDENTE #${Math.floor(Math.random() * 9000 + 1000)}`,
+          `> [OK] FORENSIC LOG SAVED · INCIDENT #${Math.floor(Math.random() * 9000 + 1000)}`,
         ],
         duration: 1400,
       },

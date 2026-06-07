@@ -4,11 +4,11 @@ window.ThreatVisionBoot = (() => {
   const STEPS = [
     {
       id: 'connect',
-      label: 'Inicializando console...',
+      label: 'Initializing console...',
       progress: 18,
       run: async () => {
         const response = await fetch('/api/health');
-        if (!response.ok) throw new Error('Servidor indisponível');
+        if (!response.ok) throw new Error('Server unavailable');
         const data = await response.json();
         clientInference = Boolean(data.clientInference);
         window.__THREATVISION_CLIENT_INFERENCE__ = clientInference;
@@ -17,25 +17,25 @@ window.ThreatVisionBoot = (() => {
     },
     {
       id: 'model',
-      label: 'Carregando modelo YOLO...',
+      label: 'Loading YOLO model...',
       progress: 62,
       run: async () => {
         if (clientInference) {
-          if (!window.YoloClient) throw new Error('Cliente YOLO indisponível');
+          if (!window.YoloClient) throw new Error('YOLO client unavailable');
           return window.YoloClient.warmUp();
         }
 
         const response = await fetch('/api/warmup');
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(data.error || 'Falha ao carregar modelo');
+          throw new Error(data.error || 'Failed to load model');
         }
         return data;
       },
     },
     {
       id: 'cameras',
-      label: 'Sincronizando câmeras...',
+      label: 'Syncing cameras...',
       progress: 88,
       run: async () => {
         const staticResponse = await fetch('/cameras.json', { cache: 'no-store' });
@@ -45,13 +45,13 @@ window.ThreatVisionBoot = (() => {
         }
 
         const response = await fetch('/api/cameras');
-        if (!response.ok) throw new Error('Falha ao listar câmeras');
+        if (!response.ok) throw new Error('Failed to list cameras');
         return response.json();
       },
     },
     {
       id: 'ready',
-      label: 'Sistema operacional',
+      label: 'System operational',
       progress: 100,
       run: async () => {},
     },
@@ -121,14 +121,14 @@ window.ThreatVisionBoot = (() => {
       } catch (error) {
         failed = true;
         markStep(elements, step.id, 'is-error');
-        setStatus(elements, `ERRO: ${error.message}`);
+        setStatus(elements, `ERROR: ${error.message}`);
         setProgress(elements, step.progress);
         break;
       }
     }
 
     if (!failed) {
-      setStatus(elements, 'SISTEMA OPERACIONAL');
+      setStatus(elements, 'SYSTEM OPERATIONAL');
     }
 
     finishLoader(elements, failed);

@@ -165,7 +165,7 @@ window.YoloClient = (() => {
 
   async function getSession() {
     if (typeof ort === 'undefined') {
-      throw new Error('onnxruntime-web não carregado');
+      throw new Error('onnxruntime-web not loaded');
     }
 
     if (!sessionPromise) {

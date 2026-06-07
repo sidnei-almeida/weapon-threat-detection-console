@@ -489,6 +489,35 @@ body.is-booting .modal-overlay {
   flex-shrink: 0;
 }
 
+.github-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  margin-right: 2px;
+  padding-right: 10px;
+}
+
+.github-link {
+  text-decoration: none;
+  color: #4B5563;
+}
+
+.github-link:hover {
+  color: #E5E7EB;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.github-link:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 2px;
+}
+
+.github-icon {
+  display: block;
+}
+
 .build-label {
   font-family: var(--font-brand);
   font-size: 9px;

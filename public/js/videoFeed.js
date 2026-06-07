@@ -169,8 +169,8 @@ window.VideoFeed = (() => {
     cameraDropdownList.innerHTML = '';
 
     if (cameras.length === 0) {
-      cameraDropdownList.innerHTML = '<li class="camera-dropdown-empty">Nenhum vídeo em /videos</li>';
-      if (cameraNameEl) cameraNameEl.textContent = 'Sem câmeras disponíveis';
+      cameraDropdownList.innerHTML = '<li class="camera-dropdown-empty">No videos in /videos</li>';
+      if (cameraNameEl) cameraNameEl.textContent = 'No cameras available';
       updateCameraCounts();
       return;
     }
@@ -241,7 +241,7 @@ window.VideoFeed = (() => {
 
       if (!data?.cameras?.length) {
         const response = await fetch('/api/cameras');
-        if (!response.ok) throw new Error('Falha ao carregar câmeras');
+        if (!response.ok) throw new Error('Failed to load cameras');
         data = await response.json();
       }
 
@@ -251,11 +251,11 @@ window.VideoFeed = (() => {
       if (cameras.length > 0) {
         selectCamera(cameras[0].id, false);
       } else if (cameraNameEl) {
-        cameraNameEl.textContent = 'Sem câmeras disponíveis';
+        cameraNameEl.textContent = 'No cameras available';
       }
     } catch (error) {
       console.error('Camera load failed:', error.message);
-      if (cameraNameEl) cameraNameEl.textContent = 'Erro ao carregar câmeras';
+      if (cameraNameEl) cameraNameEl.textContent = 'Error loading cameras';
     }
   }
 
@@ -482,7 +482,7 @@ window.VideoFeed = (() => {
     }
 
     if (!selectedCamera) {
-      alert('Selecione uma câmera (vídeo) na lista.');
+      alert('Select a camera (video) from the list.');
       return;
     }
 
@@ -539,7 +539,7 @@ window.VideoFeed = (() => {
       videoPlaceholder.style.display = 'flex';
       setCctvMode(false);
       setCameraButtonState(false);
-      alert(`Não foi possível reproduzir o vídeo: ${error.message}`);
+      alert(`Could not play video: ${error.message}`);
     }
   }
 
@@ -818,7 +818,7 @@ window.VideoFeed = (() => {
     const source = liveVideo.style.display !== 'none' ? liveVideo : staticFrame;
 
     if (!source || (source === liveVideo && !liveVideo.videoWidth)) {
-      alert('Nenhum frame disponível para captura.');
+      alert('No frame available for capture.');
       return;
     }
 
@@ -848,7 +848,7 @@ window.VideoFeed = (() => {
 
   function toggleRecording() {
     if (!stream) {
-      alert('Gravação disponível apenas para webcam ao vivo.');
+      alert('Recording available for live webcam only.');
       return;
     }
 
