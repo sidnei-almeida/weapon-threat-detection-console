@@ -3639,3 +3639,155 @@ body.tn-modal-open {
   padding-left: 100%;
   animation: ticker-scroll 10s linear infinite;
 }
+
+/* === DESKTOP LAYOUT RESTORE (mobile.css adds #app wrapper — restore flex chain) === */
+@media (min-width: 769px) {
+
+  html,
+  body {
+    height: 100% !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100vh !important;
+    height: 100vh !important;
+  }
+
+  #app,
+  .app-root,
+  [data-layout="main"] {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100vh !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .navbar,
+  .top-nav,
+  [data-component="navbar"] {
+    flex-shrink: 0 !important;
+  }
+
+  .main-content,
+  [data-component="main-content"] {
+    display: grid !important;
+    grid-template-columns: 260px 1fr 300px !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    width: 100% !important;
+  }
+
+  .left-sidebar,
+  [data-sidebar="left"],
+  .sidebar-left {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-shrink: 0 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    visibility: visible !important;
+    position: relative !important;
+    width: auto !important;
+    pointer-events: auto !important;
+  }
+
+  .right-sidebar,
+  [data-sidebar="right"],
+  .sidebar-right,
+  .threat-event-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-shrink: 0 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    visibility: visible !important;
+    position: relative !important;
+    width: auto !important;
+    pointer-events: auto !important;
+  }
+
+  .center-panel,
+  [data-component="video-area"] {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .video-container,
+  [data-component="video-wrapper"] {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .video-wrapper,
+  #videoWrapper {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .video-controls-bar,
+  .video-controls,
+  [data-component="controls-bar"] {
+    flex-shrink: 0 !important;
+  }
+
+  .timeline-container,
+  .event-timeline,
+  [data-component="timeline"] {
+    flex-shrink: 0 !important;
+  }
+
+  .sidebar-status-footer,
+  [data-component="system-status"] {
+    flex-shrink: 0 !important;
+    position: relative !important;
+  }
+
+  /* Mobile-only UI — never visible on desktop */
+  #mobile-tab-bar,
+  #mob-cam-info,
+  #mobile-cam-actions,
+  .mob-panel-host,
+  .mob-panel,
+  .mob-tab {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* Reset safe-area padding that mobile rules may leave on resized viewports */
+  #app,
+  .app-root,
+  .main-content,
+  .left-sidebar,
+  .right-sidebar,
+  .video-controls-bar,
+  .event-timeline {
+    padding-bottom: 0 !important;
+  }
+}
