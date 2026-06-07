@@ -1,0 +1,412 @@
+/* ThreatVision — mobile layer (≤768px). Desktop CSS untouched. */
+
+@media (max-width: 768px) {
+
+  /* === ROOT LAYOUT === */
+  body {
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  .app-root,
+  #app,
+  [data-layout="main"] {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    width: 100vw !important;
+  }
+
+  /* === HEADER BAR === */
+  .top-nav,
+  .navbar,
+  nav,
+  [data-component="navbar"] {
+    height: calc(44px + env(safe-area-inset-top)) !important;
+    min-height: calc(44px + env(safe-area-inset-top)) !important;
+    padding: max(8px, env(safe-area-inset-top)) 16px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-shrink: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    overflow: hidden !important;
+    gap: 8px !important;
+  }
+
+  .nav-tabs,
+  .navbar-tabs,
+  [data-component="nav-tabs"] {
+    display: none !important;
+  }
+
+  .nav-brand,
+  .navbar-brand {
+    font-size: 14px !important;
+    min-width: 0 !important;
+    flex-shrink: 1 !important;
+  }
+
+  .navbar-brand .brand-slash,
+  .navbar-brand .brand-console {
+    display: none !important;
+  }
+
+  .navbar-right {
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .build-version,
+  .build-label,
+  [data-component="build-info"],
+  .github-links,
+  .user-avatar,
+  .notification-btn {
+    display: none !important;
+  }
+
+  .status-indicator {
+    font-size: 9px !important;
+    padding: 2px 8px !important;
+  }
+
+  /* === MAIN CONTENT === */
+  .main-content,
+  [data-component="main-content"] {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    grid-template-columns: none !important;
+  }
+
+  .main-content > .left-sidebar,
+  .main-content > [data-sidebar="left"],
+  .main-content > .right-sidebar,
+  .main-content > [data-sidebar="right"] {
+    display: none !important;
+  }
+
+  .mob-panel-host {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .mob-panel {
+    display: none !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    padding: 12px 14px calc(80px + env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    flex-direction: column !important;
+  }
+
+  .mob-panel.is-active {
+    display: flex !important;
+  }
+
+  .mob-panel--status .sidebar-status-footer {
+    display: block !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 4px !important;
+    margin-top: 8px !important;
+  }
+
+  .mob-panel-empty {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #6B7280;
+    padding: 16px 0;
+  }
+
+  /* === VIDEO AREA === */
+  .center-panel,
+  [data-component="video-area"] {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    min-height: 0 !important;
+  }
+
+  .video-container {
+    width: 100% !important;
+    flex-shrink: 0 !important;
+  }
+
+  .video-wrapper,
+  #videoWrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-shrink: 0 !important;
+  }
+
+  .cctv-feed-layer,
+  #cctvFeedLayer {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+    max-height: 240px !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #liveVideo,
+  #staticFrame {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 240px !important;
+    object-fit: contain !important;
+    display: block !important;
+  }
+
+  #detectionCanvas,
+  .detection-canvas {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    aspect-ratio: unset !important;
+    pointer-events: none !important;
+  }
+
+  #cctv-overlay {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    aspect-ratio: unset !important;
+  }
+
+  #videoWrapper {
+    aspect-ratio: 16 / 9 !important;
+    max-height: 280px !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .video-controls {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 8px 0 !important;
+  }
+
+  .timeline-container {
+    width: 100% !important;
+    flex-shrink: 0 !important;
+    margin-top: 8px !important;
+  }
+
+  .camera-source-block {
+    margin-bottom: 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Threat / AI panels — restore sidebar appearance */
+  .mob-panel .sidebar-section,
+  .mob-panel .threat-event-panel,
+  .mob-panel .sidebar-right {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  .mob-panel .sidebar-right,
+  .mob-panel .threat-event-panel {
+    display: flex !important;
+  }
+
+  .mob-panel .threat-event-panel {
+    overflow: visible !important;
+  }
+
+  /* === BOTTOM TAB BAR === */
+  #mobile-tab-bar {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: calc(56px + env(safe-area-inset-bottom)) !important;
+    background: #0A0A0A !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+    z-index: 1000 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mob-tab {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    background: transparent !important;
+    border: none !important;
+    border-top: 2px solid transparent !important;
+    cursor: pointer !important;
+    color: #4B5563 !important;
+    transition: color 0.15s !important;
+    padding-bottom: 2px !important;
+    min-height: unset !important;
+    min-width: unset !important;
+  }
+
+  .mob-tab span {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 8px !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+  }
+
+  .mob-tab.active {
+    color: #EF4444 !important;
+    border-top-color: #EF4444 !important;
+  }
+
+  .mob-tab:not(.active):hover {
+    color: #9CA3AF !important;
+  }
+
+  /* === TYPOGRAPHY & TOUCH === */
+  button,
+  [role="button"] {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  .mob-tab {
+    min-height: unset !important;
+    min-width: unset !important;
+  }
+
+  .btn-icon.fullscreen-btn,
+  .github-link {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  .escalate-btn,
+  #escalateBtn {
+    height: 52px !important;
+    font-size: 13px !important;
+    width: 100% !important;
+  }
+
+  .action-buttons-row,
+  .event-action-row {
+    display: flex !important;
+    gap: 8px !important;
+    margin-left: 14px !important;
+    margin-right: 14px !important;
+  }
+
+  .action-buttons-row button,
+  .event-action-row button {
+    flex: 1 !important;
+    font-size: 11px !important;
+    min-width: 0 !important;
+  }
+
+  .section-label,
+  .section-label-accent,
+  .threat-context-header,
+  .threat-event-header-label,
+  .timeline-header-label {
+    font-size: 9px !important;
+  }
+
+  .event-key,
+  .ctx-key,
+  .stat-card-label {
+    font-size: 10px !important;
+  }
+
+  .event-val,
+  .ctx-val,
+  .stat-card-value,
+  .threat-field-value {
+    font-size: 11px !important;
+  }
+
+  .stat-cards-row {
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  .ai-summary-card {
+    padding: 10px 12px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .confidence-chart-shell {
+    min-height: 120px !important;
+  }
+
+  .zone-heatmap-grid {
+    max-width: 100% !important;
+  }
+
+  /* === MODALS === */
+  #escalation-modal {
+    width: calc(100vw - 32px) !important;
+    max-width: 100% !important;
+  }
+
+  .escalation-overlay {
+    padding: 0 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-confirm-modal {
+    width: calc(100vw - 32px) !important;
+    max-width: 100% !important;
+  }
+
+  .tn-toast-stack {
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    right: 16px !important;
+    left: 16px !important;
+  }
+
+  .tn-toast {
+    max-width: 100% !important;
+  }
+
+  .modal-box {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    padding: 16px !important;
+  }
+
+  /* === BOOT LOADER === */
+  .boot-loader__content {
+    padding: 0 24px !important;
+    max-width: 100% !important;
+  }
+
+  .boot-loader__brand {
+    font-size: 22px !important;
+  }
+}
