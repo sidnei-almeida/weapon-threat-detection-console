@@ -9,6 +9,9 @@ window.Dashboard = (() => {
   let uptimeInterval = null;
   let clockInterval = null;
   let uploadedFile = null;
+  let isEventReviewed = false;
+  let reviewInProgress = false;
+  let reviewBtnDefaultHtml = '';
 
   let displayedTargetScore = 0;
   let targetScoreAnimFrame = null;
@@ -205,6 +208,9 @@ window.Dashboard = (() => {
     socket.on('event-updated', (data) => {
       if (data.eventId === currentEventId) {
         setEventValue('escalationStatus', data.status, getEscalationClass(data.status));
+        if (data.status === 'Reviewed' && !isEventReviewed && !reviewInProgress) {
+          applyReviewedUI();
+        }
       }
     });
   }
@@ -440,7 +446,70 @@ window.Dashboard = (() => {
     `;
   }
 
+  function resetReviewedUI() {
+    isEventReviewed = false;
+    reviewInProgress = false;
+
+    document.querySelector('.threat-event-panel')?.classList.remove('threat-event-panel--reviewed');
+    document.querySelector('.threat-reviewed-badge')?.remove();
+
+    const reviewBtn = document.getElementById('btnReview');
+    if (reviewBtn) {
+      reviewBtn.disabled = false;
+      reviewBtn.classList.remove('btn-review--loading', 'btn-review--done');
+      if (reviewBtnDefaultHtml) reviewBtn.innerHTML = reviewBtnDefaultHtml;
+    }
+
+    const escalateBtn = document.getElementById('escalateBtn');
+    if (escalateBtn) {
+      escalateBtn.disabled = false;
+      escalateBtn.classList.remove('escalate-btn--muted');
+    }
+  }
+
+  function setReviewBtnLoading() {
+    const reviewBtn = document.getElementById('btnReview');
+    if (!reviewBtn) return;
+
+    reviewBtn.disabled = true;
+    reviewBtn.classList.add('btn-review--loading');
+    reviewBtn.classList.remove('btn-review--done');
+    reviewBtn.innerHTML = `
+      <span class="btn-review-spinner" aria-hidden="true"></span>
+      <span class="btn-review-loading-label">PROCESSANDO...</span>
+    `;
+  }
+
+  function applyReviewedUI() {
+    isEventReviewed = true;
+
+    const reviewBtn = document.getElementById('btnReview');
+    if (reviewBtn) {
+      reviewBtn.classList.remove('btn-review--loading');
+      reviewBtn.classList.add('btn-review--done');
+      reviewBtn.innerHTML = '✓ &nbsp;REVISADO';
+      reviewBtn.disabled = true;
+    }
+
+    document.querySelector('.threat-event-panel')?.classList.add('threat-event-panel--reviewed');
+
+    const header = document.querySelector('.threat-event-header, [data-section="threat-event"]');
+    if (header && !header.querySelector('.threat-reviewed-badge')) {
+      const badge = document.createElement('span');
+      badge.className = 'threat-reviewed-badge';
+      badge.textContent = 'REVISADO';
+      header.appendChild(badge);
+    }
+
+    const escalateBtn = document.getElementById('escalateBtn');
+    if (escalateBtn) {
+      escalateBtn.disabled = true;
+      escalateBtn.classList.add('escalate-btn--muted');
+    }
+  }
+
   function resetEventPanel() {
+    resetReviewedUI();
     currentEventId = null;
     setEventId(null);
     setEventValue('detectionTime', null);
@@ -450,6 +519,71 @@ window.Dashboard = (() => {
     setEventValue('escalationStatus', null);
     setEventValue('recommendedAction', null);
     renderAiSummaryEmpty();
+
+    const panel = document.querySelector('.threat-event-panel, [data-panel="threat-event"]');
+    panel?.classList.add('threat-event-panel--idle');
+  }
+
+  function clearIdlePanelState() {
+    document.querySelector('.threat-event-panel, [data-panel="threat-event"]')
+      ?.classList.remove('threat-event-panel--idle');
+  }
+
+  function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function runFalseAlarmSequence() {
+    const eventIdToClear = currentEventId;
+    if (!eventIdToClear) return;
+
+    fetch(`/api/events/${eventIdToClear}/false-alarm`, { method: 'PATCH' }).catch(() => {});
+
+    window.TN?.toast?.({ message: 'Evento descartado como falso alarme.', type: 'info' });
+
+    const panel = document.querySelector('.threat-event-panel, [data-panel="threat-event"]');
+    if (panel) {
+      panel.classList.add('threat-event-panel--false-alarm-flash');
+      setTimeout(() => panel.classList.remove('threat-event-panel--false-alarm-flash'), 600);
+    }
+
+    await delay(600);
+
+    document.querySelectorAll('.threat-field-value, [data-field]').forEach((el) => {
+      el.innerHTML = '<span class="event-empty">— —</span>';
+      el.style.opacity = '0.35';
+    });
+
+    const eventIdEl = document.querySelector('.threat-event-id, [data-event-id], #eventId');
+    if (eventIdEl) {
+      eventIdEl.innerHTML = 'ID: <span class="event-empty">— —</span>';
+    }
+
+    const rows = document.querySelectorAll('.threat-field-row, .event-row');
+    rows.forEach((row, i) => {
+      row.style.transition = `opacity 0.3s ease ${i * 40}ms, transform 0.3s ease ${i * 40}ms`;
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(-4px)';
+    });
+
+    await delay(400);
+
+    window.ThreatCharts.reset();
+    animateTargetScoreTo(0);
+    resetTargetScoreStats();
+    resetEventPanel();
+
+    rows.forEach((row) => {
+      row.style.transition = '';
+      row.style.opacity = '';
+      row.style.transform = '';
+    });
+
+    document.querySelectorAll('.threat-field-value, [data-field]').forEach((el) => {
+      el.style.opacity = '';
+    });
+
+    console.log('[ThreatVision] False alarm registered. Panel reset complete.');
   }
 
   function getActionDetails(riskLevel) {
@@ -472,6 +606,9 @@ window.Dashboard = (() => {
   }
 
   function updateEventPanel(detection) {
+    resetReviewedUI();
+    clearIdlePanelState();
+
     const { recommendedAction } = getActionDetails(detection.riskLevel);
 
     setEventId(detection.id);
@@ -483,6 +620,10 @@ window.Dashboard = (() => {
     setEventValue('recommendedAction', recommendedAction);
 
     currentEventId = detection.id;
+
+    if (detection.escalationStatus === 'Reviewed') {
+      applyReviewedUI();
+    }
   }
 
   function updateAiSummary(detection) {
@@ -616,24 +757,42 @@ window.Dashboard = (() => {
   }
 
   function initUIListeners() {
-    document.getElementById('btnReview').onclick = async () => {
-      if (!currentEventId) return;
-      await fetch(`/api/events/${currentEventId}/review`, { method: 'PATCH' });
-      setEventValue('escalationStatus', 'Reviewed', 'escalation-reviewed');
-    };
+    const reviewBtn = document.getElementById('btnReview');
+    if (reviewBtn) {
+      reviewBtnDefaultHtml = reviewBtn.innerHTML;
+      reviewBtn.onclick = () => {
+        if (!currentEventId || reviewInProgress || isEventReviewed) return;
 
-    document.getElementById('btnFalseAlarm').onclick = async () => {
-      if (!currentEventId) return;
-      await fetch(`/api/events/${currentEventId}/false-alarm`, { method: 'PATCH' });
-      window.ThreatCharts.reset();
-      animateTargetScoreTo(0);
-      resetTargetScoreStats();
-      resetEventPanel();
-    };
+        reviewInProgress = true;
+        setReviewBtnLoading();
 
-    document.getElementById('escalateBtn').onclick = () => {
-      alert(`🚨 Escalating to Security Team — Event ${currentEventId || 'N/A'}`);
-    };
+        fetch(`/api/events/${currentEventId}/review`, { method: 'PATCH' }).catch(() => {});
+
+        setTimeout(() => {
+          reviewInProgress = false;
+          setEventValue('escalationStatus', 'Reviewed', 'escalation-reviewed');
+          applyReviewedUI();
+          window.TN?.toast?.({ message: 'Evento marcado como revisado.', type: 'success' });
+        }, 900);
+      };
+    }
+
+    const falseAlarmBtn = document.querySelector('[data-action="false-alarm"], #btnFalseAlarm');
+    if (falseAlarmBtn) {
+      falseAlarmBtn.addEventListener('click', () => {
+        if (!currentEventId) return;
+
+        window.TN.modal({
+          title: 'CONFIRMAR FALSO ALARME',
+          message: 'Marcar este evento como falso alarme irá encerrar o protocolo de ameaça e redefinir o painel. Esta ação será registrada no log.',
+          type: 'warning',
+          showCancel: true,
+          confirmLabel: 'CONFIRMAR',
+          cancelLabel: 'CANCELAR',
+          onConfirm: () => runFalseAlarmSequence(),
+        });
+      });
+    }
 
     document.querySelectorAll('.nav-tab').forEach((tab) => {
       tab.onclick = () => {

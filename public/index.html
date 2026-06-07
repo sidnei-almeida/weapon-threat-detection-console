@@ -469,54 +469,54 @@
     </section>
 
     <!-- COLUNA DIREITA -->
-    <aside class="sidebar-right threat-event-panel">
-      <div class="threat-event-header">
+    <aside class="sidebar-right threat-event-panel" data-panel="threat-event">
+      <div class="threat-event-header" data-section="threat-event">
         <span class="threat-event-header-label">THREAT EVENT</span>
-        <span class="event-id" id="eventId">ID: <span class="event-empty">— —</span></span>
+        <span class="event-id threat-event-id" id="eventId" data-event-id>ID: <span class="event-empty">— —</span></span>
       </div>
 
       <div class="event-details">
-        <div class="event-row">
+        <div class="event-row threat-field-row">
           <div class="event-row-left">
             <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
             <span class="event-key">Detection Time</span>
           </div>
-          <span class="event-val event-val--mono" id="detectionTime"><span class="event-empty">— —</span></span>
+          <span class="event-val event-val--mono threat-field-value" id="detectionTime" data-field="detectionTime"><span class="event-empty">— —</span></span>
         </div>
-        <div class="event-row">
+        <div class="event-row threat-field-row">
           <div class="event-row-left">
             <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
             <span class="event-key">Object Class</span>
           </div>
-          <span class="event-val event-val--mono" id="objectClass"><span class="event-empty">— —</span></span>
+          <span class="event-val event-val--mono threat-field-value" id="objectClass" data-field="objectClass"><span class="event-empty">— —</span></span>
         </div>
-        <div class="event-row">
+        <div class="event-row threat-field-row">
           <div class="event-row-left">
             <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
             <span class="event-key">Confidence</span>
           </div>
-          <span class="event-val event-val--mono" id="eventConfidence"><span class="event-empty">— —</span></span>
+          <span class="event-val event-val--mono threat-field-value" id="eventConfidence" data-field="eventConfidence"><span class="event-empty">— —</span></span>
         </div>
-        <div class="event-row">
+        <div class="event-row threat-field-row">
           <div class="event-row-left">
             <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
             <span class="event-key">Location / Zone</span>
           </div>
-          <span class="event-val event-val--mono" id="eventZone"><span class="event-empty">— —</span></span>
+          <span class="event-val event-val--mono threat-field-value" id="eventZone" data-field="eventZone"><span class="event-empty">— —</span></span>
         </div>
-        <div class="event-row">
+        <div class="event-row threat-field-row">
           <div class="event-row-left">
             <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
             <span class="event-key">Escalation Status</span>
           </div>
-          <span class="event-val event-val--mono" id="escalationStatus"><span class="event-empty">— —</span></span>
+          <span class="event-val event-val--mono threat-field-value" id="escalationStatus" data-field="escalationStatus"><span class="event-empty">— —</span></span>
         </div>
-        <div class="event-row event-row--multiline">
+        <div class="event-row event-row--multiline threat-field-row">
           <div class="event-row-left">
             <span class="event-icon"><svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span>
             <span class="event-key">Recommended Action</span>
           </div>
-          <span class="event-val event-val--mono" id="recommendedAction"><span class="event-empty">— —</span></span>
+          <span class="event-val event-val--mono threat-field-value" id="recommendedAction" data-field="recommendedAction"><span class="event-empty">— —</span></span>
         </div>
       </div>
 
@@ -544,11 +544,11 @@
       </button>
 
       <div class="event-action-row">
-        <button class="btn-secondary-action" id="btnReview" type="button">
+        <button class="btn-secondary-action" id="btnReview" type="button" data-action="mark-reviewed">
           <svg class="icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
           Mark as Reviewed
         </button>
-        <button class="btn-secondary-action" id="btnFalseAlarm" type="button">
+        <button class="btn-secondary-action" id="btnFalseAlarm" type="button" data-action="false-alarm">
           <svg class="icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           False Alarm
         </button>
@@ -610,6 +610,9 @@
   <script src="js/cctvOverlay.js"></script>
   <script src="js/yoloClient.js"></script>
   <script src="js/videoFeed.js"></script>
+  <script src="js/tnModal.js"></script>
+  <script src="js/tnToast.js"></script>
+  <script src="js/escalationModal.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/boot.js"></script>
 </body>
