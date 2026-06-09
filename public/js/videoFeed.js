@@ -1204,6 +1204,10 @@ window.VideoFeed = (() => {
     detectionTooltip.style.display = 'none';
   }
 
+  function getCameras() {
+    return [...cameras];
+  }
+
   return {
     init,
     startCamera,
@@ -1216,5 +1220,6 @@ window.VideoFeed = (() => {
     showStaticFrame,
     clearDetections,
     loadCameras,
+    getCameras,
   };
 })();

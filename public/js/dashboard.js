@@ -166,6 +166,37 @@ window.Dashboard = (() => {
     }
   }
 
+  function getCameraLabel(cameraId) {
+    const cameras = window.VideoFeed?.getCameras?.() || [];
+    const match = cameras.find((c) => c.id === cameraId);
+    return match?.name || cameraId?.replace('CAM-', 'CAM ') || 'CAM 01';
+  }
+
+  function captureFrameSnapshot() {
+    const canvas = document.getElementById('detectionCanvas');
+    if (!canvas || canvas.width === 0) return undefined;
+    try {
+      return canvas.toDataURL('image/jpeg', 0.6);
+    } catch {
+      return undefined;
+    }
+  }
+
+  function registerThreatEvents(detections, options = {}) {
+    if (!window.EventsStore?.addEventFromDetection) return;
+
+    detections.forEach((detection) => {
+      const objectClass = window.ThreatEventHelpers?.mapDisplayClassToKey(detection.objectClass);
+      if (!objectClass) return;
+
+      window.EventsStore.addEventFromDetection(detection, {
+        cameraLabel: getCameraLabel(detection.cameraId),
+        frameSnapshot: options.frameSnapshot,
+        force: options.force,
+      });
+    });
+  }
+
   function init() {
     window.ThreatCharts.init();
     window.VideoFeed.init();
@@ -241,12 +272,7 @@ window.Dashboard = (() => {
 
     window.ThreatCharts.addConfidencePoint(topDetection.confidence);
 
-    const highCount = detections.filter((item) => item.riskLevel === 'HIGH').length;
-    if (highCount > 0) {
-      const incidentEl = document.getElementById('incidentCount');
-      incidentEl.textContent = String(Number(incidentEl.textContent || 0) + highCount);
-      syncStatusIndicator();
-    }
+    registerThreatEvents(detections, { frameSnapshot: captureFrameSnapshot() });
   }
 
   function getRiskPercentTier(percent) {
@@ -642,9 +668,10 @@ window.Dashboard = (() => {
   function showThreatAlert(detection) {
     setNotificationAlertActive(true);
 
-    const incidentEl = document.getElementById('incidentCount');
-    incidentEl.textContent = String(Number(incidentEl.textContent || 0) + 1);
-    syncStatusIndicator();
+    registerThreatEvents([detection], {
+      frameSnapshot: captureFrameSnapshot(),
+      force: true,
+    });
 
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('⚠️ THREAT DETECTED', {
@@ -794,17 +821,6 @@ window.Dashboard = (() => {
       });
     }
 
-    document.querySelectorAll('.nav-tab').forEach((tab) => {
-      tab.onclick = () => {
-        document.querySelectorAll('.nav-tab').forEach((item) => item.classList.remove('active'));
-        tab.classList.add('active');
-
-        if (tab.dataset.tab === 'upload') {
-          document.getElementById('uploadModal').style.display = 'flex';
-        }
-      };
-    });
-
     document.getElementById('closeUploadModal').onclick = () => {
       document.getElementById('uploadModal').style.display = 'none';
     };
@@ -937,5 +953,6 @@ window.Dashboard = (() => {
     updateThreatContext,
     updateEventPanel,
     syncStatusIndicator,
+    registerThreatEvents,
   };
 })();

@@ -124,7 +124,8 @@
   </nav>
 
   <!-- CONTEÚDO PRINCIPAL -->
-  <main class="main-content" data-component="main-content">
+  <div class="tab-panels" id="tabPanels">
+  <main class="main-content tab-panel tab-panel--active" id="tabPanelLive" data-tab-panel="live" data-component="main-content">
 
     <!-- COLUNA ESQUERDA -->
     <aside class="sidebar-left left-sidebar" data-sidebar="left">
@@ -607,6 +608,10 @@
     </aside>
   </main>
 
+  <section class="tab-panel tab-panel--queue" id="tabPanelQueue" data-tab-panel="queue" hidden></section>
+  <section class="tab-panel tab-panel--analytics" id="tabPanelAnalytics" data-tab-panel="analytics" hidden></section>
+  </div>
+
   </div>
 
   <!-- MODAL DE UPLOAD -->
@@ -652,6 +657,13 @@
   <script src="js/tnModal.js"></script>
   <script src="js/tnToast.js"></script>
   <script src="js/escalationModal.js"></script>
+  <script src="js/utils/threatEventHelpers.js"></script>
+  <script src="js/utils/demoData.js"></script>
+  <script src="js/utils/exportCsv.js"></script>
+  <script src="js/store/eventsStore.js"></script>
+  <script src="js/incidentQueue.js"></script>
+  <script src="js/analytics.js"></script>
+  <script src="js/tabManager.js"></script>
   <script src="js/mobileLayout.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/boot.js"></script>
