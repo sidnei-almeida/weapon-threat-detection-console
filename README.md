@@ -139,6 +139,13 @@ Copie `.env.example` para `.env`:
 ```env
 PORT=3001
 YOLO_MODEL=fp32
+INFERENCE_FPS=12
+
+# 0 = inferência no navegador (worker), igual à produção na Vercel
+# USE_LOCAL_YOLO=0
+
+# 1 = COOP/COEP, habilita WASM multi-thread no onnxruntime-web (~4x)
+# CROSS_ORIGIN_ISOLATION=1
 
 # Opcional — Roboflow na Vercel se ONNX falhar por timeout
 # DETECTION_BACKEND=roboflow
@@ -146,6 +153,50 @@ YOLO_MODEL=fp32
 # ROBOFLOW_PROJECT_WEAPON=
 # ROBOFLOW_PROJECT_MASK=
 ```
+
+---
+
+## Pipeline de inferência
+
+O gargalo de um console de visão computacional não é o modelo em si, e sim
+*onde* ele roda. Quando a inferência acontece na thread principal, cada frame
+congela a interface inteira — animações, cliques e o próprio vídeo.
+
+Aqui a inferência do navegador roda dentro de um **worker dedicado**
+(`public/inference.worker.js`), e o overlay é desenhado por um loop próprio que
+**interpola** as caixas entre um resultado e o outro.
+
+```
+requestVideoFrameCallback  →  createImageBitmap  →  [worker: preprocess + ONNX + NMS]
+                                                             ↓
+        loop de render (60 fps)  ←  DetectionTracks (suavização)  ←  detecções
+```
+
+**Medido em Chromium headless, WASM single-thread, com o modelo a ~1 fps:**
+
+| | Thread principal (antes) | Worker (agora) |
+|---|---|---|
+| FPS da interface | 2 | **60** |
+| Intervalo entre frames (p50) | 800 ms | **16,7 ms** |
+| Long tasks (>50 ms) em 15 s | 19 | **0** |
+| Pior bloqueio | 842 ms | **0 ms** |
+
+A velocidade do modelo não mudou — o que mudou é que ela deixou de travar a
+interface. Detalhes do pipeline:
+
+- **`requestVideoFrameCallback`** dispara uma vez por frame decodificado, então
+  o mesmo frame nunca é analisado duas vezes.
+- **Backpressure**: no máximo um frame em voo. Se o modelo fica lento, frames
+  são descartados em vez de enfileirados — o overlay nunca atrasa em relação ao
+  vídeo.
+- **Suavização por track** (`public/js/detectionTracks.js`): resultados novos
+  são pareados com tracks existentes por classe + IoU e a posição é filtrada de
+  forma independente do frame rate. Caixas deslizam e desaparecem com fade em
+  vez de piscar.
+- **Buffers reaproveitados** no worker (canvas, `Float32Array`, tensor), sem
+  alocar 1,2 M floats por frame.
+- **`onnxruntime-web` sob demanda**: ~1,5 MB que só entram na página no
+  fallback para navegadores sem Worker/OffscreenCanvas.
 
 ---
 
@@ -216,7 +267,11 @@ weapon-threat-detection-console/
 ├── public/
 │   ├── css/dashboard.css        # Design system
 │   ├── js/                      # videoFeed, dashboard, boot, cctvOverlay
-│   ├── videos/                  # Câmeras demo (CAM 01–06)
+│   │   ├── detectionTracks.js   # Suavização/interpolação das bounding boxes
+│   │   ├── yoloClient.js        # Proxy para o worker (+ fallback main thread)
+│   │   └── yolo/postprocess.js  # NMS e formatação (compartilhado com o worker)
+│   ├── inference.worker.js      # ONNX fora da thread principal
+│   ├── videos/                  # Câmeras demo (CAM 01–05)
 │   └── favicon.svg
 ├── server/
 │   ├── app.js                   # Express app (local + Vercel)
