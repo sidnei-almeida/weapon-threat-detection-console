@@ -140,10 +140,16 @@ window.ThreatVisionBoot = (() => {
 })();
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await window.ThreatVisionBoot.run();
+  const booted = await window.ThreatVisionBoot.run();
   window.EventsStore.init();
   window.IncidentQueue.init(document.getElementById('tabPanelQueue'));
   window.Analytics.init(document.getElementById('tabPanelAnalytics'));
   window.TabManager.init();
   window.Dashboard.init();
+
+  /* Only once the model is actually ready — starting the feed after a failed
+     boot would just stream frames at an inference backend that cannot answer. */
+  if (booted) {
+    window.VideoFeed.autoStart();
+  }
 });
