@@ -3,7 +3,6 @@ window.VideoFeed = (() => {
   let isRecording = false;
   let mediaRecorder = null;
   let recordedChunks = [];
-  let currentDetections = [];
   let captureRafId = null;
   let captureWorker = null;
   let workerReady = false;
@@ -35,7 +34,18 @@ window.VideoFeed = (() => {
   let captureCanvas = null;
   let captureCtx = null;
   let framesAnalyzed = 0;
-  let lastAnalyzeMs = 0;
+
+  /* The overlay renders on its own rAF loop, decoupled from inference, so
+     boxes interpolate at display rate instead of jumping once per result. */
+  let overlayRafId = null;
+  let lastOverlayTs = 0;
+  let overlayDirty = false;
+  let overlaySizeDirty = true;
+  let highRiskHudVisible = false;
+  let inferenceBadge = null;
+  let videoFrameCallbackId = null;
+  let useVideoFrameCallback = false;
+  let inferenceFps = 0;
 
   let cameras = [];
   let selectedCamera = null;
@@ -67,11 +77,6 @@ window.VideoFeed = (() => {
   let isPaused = false;
 
   let resizeObserver = null;
-  let lastDetectionFrame = {
-    detections: [],
-    imageWidth: 1280,
-    imageHeight: 720,
-  };
 
   const ICONS = {
     play: '<svg class="icon-svg btn-start-camera-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
@@ -435,9 +440,18 @@ window.VideoFeed = (() => {
     return null;
   }
 
+  /*
+   * Measuring the media element forces a layout flush. The overlay loop runs
+   * every animation frame, so the measurement is cached and only refreshed
+   * when something actually resized (ResizeObserver / zoom / fullscreen).
+   */
   function syncCanvasSize() {
     const mediaEl = getActiveMediaElement();
     if (!detectionCanvas || !mediaEl) return false;
+
+    if (!overlaySizeDirty && detectionCanvas.width > 0 && detectionCanvas.height > 0) {
+      return true;
+    }
 
     const rect = mediaEl.getBoundingClientRect();
     const width = Math.round(rect.width);
@@ -450,7 +464,12 @@ window.VideoFeed = (() => {
       detectionCanvas.height = height;
     }
 
+    overlaySizeDirty = false;
     return true;
+  }
+
+  function invalidateOverlaySize() {
+    overlaySizeDirty = true;
   }
 
   function getContainRenderRect(mediaEl, canvasW, canvasH) {
@@ -477,28 +496,6 @@ window.VideoFeed = (() => {
     }
 
     return { offsetX, offsetY, renderW, renderH };
-  }
-
-  function getScaledBox(box, mediaEl, canvas, imageWidth, imageHeight) {
-    const norm = {
-      x: (box.x - box.width / 2) / imageWidth,
-      y: (box.y - box.height / 2) / imageHeight,
-      width: box.width / imageWidth,
-      height: box.height / imageHeight,
-    };
-
-    const { offsetX, offsetY, renderW, renderH } = getContainRenderRect(
-      mediaEl,
-      canvas.width,
-      canvas.height,
-    );
-
-    return {
-      x: offsetX + norm.x * renderW,
-      y: offsetY + norm.y * renderH,
-      w: norm.width * renderW,
-      h: norm.height * renderH,
-    };
   }
 
   function getDetectionColor(detection) {
@@ -533,14 +530,13 @@ window.VideoFeed = (() => {
     });
   }
 
+  /* Geometry changed (resize / zoom / fullscreen). Tracks are stored in
+     normalized coordinates, so one more painted frame is all it takes. */
   function redrawBoundingBoxes() {
-    if (lastDetectionFrame.detections.length === 0) return;
-
-    drawBoundingBoxes(
-      lastDetectionFrame.detections,
-      lastDetectionFrame.imageWidth,
-      lastDetectionFrame.imageHeight,
-    );
+    invalidateOverlaySize();
+    if (window.DetectionTracks.isEmpty()) return;
+    overlayDirty = true;
+    startOverlayLoop();
   }
 
   function initBoundingBoxObservers() {
@@ -612,7 +608,8 @@ window.VideoFeed = (() => {
       updateCameraCounts();
 
       startCaptureLoop();
-      lastAnalyzeMs = 0;
+      inferenceSmoothMs = 0;
+      inferenceFps = 0;
       framesAnalyzed = 0;
       await captureAndAnalyzeFrame();
     } catch (error) {
@@ -644,7 +641,8 @@ window.VideoFeed = (() => {
     analyzeInFlight = false;
     analyzePending = false;
     workerCapturePending = false;
-    lastAnalyzeMs = 0;
+    inferenceSmoothMs = 0;
+    inferenceFps = 0;
     framesAnalyzed = 0;
 
     liveVideo.style.display = 'none';
@@ -710,8 +708,19 @@ window.VideoFeed = (() => {
   function startCaptureLoop() {
     stopCaptureLoop();
     initCaptureWorker();
+    invalidateOverlaySize();
     safeCaptureIntervalMs = frameIntervalMs;
     lastCaptureTime = 0;
+
+    /* requestVideoFrameCallback fires once per *decoded* video frame, so we
+       never re-analyze the same frame twice and never wake up for nothing. */
+    useVideoFrameCallback = typeof liveVideo?.requestVideoFrameCallback === 'function';
+
+    if (useVideoFrameCallback) {
+      videoFrameCallbackId = liveVideo.requestVideoFrameCallback(videoFrameLoop);
+      return;
+    }
+
     captureRafId = requestAnimationFrame(captureLoop);
   }
 
@@ -720,15 +729,34 @@ window.VideoFeed = (() => {
       cancelAnimationFrame(captureRafId);
       captureRafId = null;
     }
+
+    if (videoFrameCallbackId && liveVideo?.cancelVideoFrameCallback) {
+      liveVideo.cancelVideoFrameCallback(videoFrameCallbackId);
+    }
+    videoFrameCallbackId = null;
+    useVideoFrameCallback = false;
+  }
+
+  function shouldCaptureNow(timestamp) {
+    if (!isVideoFeedActive || isPaused) return false;
+    if (timestamp - lastCaptureTime < safeCaptureIntervalMs) return false;
+    if (workerCapturePending || analyzeInFlight) return false;
+    return Boolean(liveVideo && liveVideo.readyState >= 2 && liveVideo.videoWidth);
+  }
+
+  function videoFrameLoop(timestamp) {
+    videoFrameCallbackId = liveVideo.requestVideoFrameCallback(videoFrameLoop);
+
+    if (!shouldCaptureNow(timestamp)) return;
+
+    lastCaptureTime = timestamp;
+    scheduleFrameCapture();
   }
 
   function captureLoop(timestamp) {
     captureRafId = requestAnimationFrame(captureLoop);
 
-    if (!isVideoFeedActive || isPaused) return;
-    if (timestamp - lastCaptureTime < safeCaptureIntervalMs) return;
-    if (workerCapturePending || analyzeInFlight) return;
-    if (!liveVideo || liveVideo.readyState < 2 || !liveVideo.videoWidth) return;
+    if (!shouldCaptureNow(timestamp)) return;
 
     lastCaptureTime = timestamp;
     scheduleFrameCapture();
@@ -814,9 +842,13 @@ window.VideoFeed = (() => {
 
   function finishAnalyzeCycle(startedAt) {
     const elapsed = performance.now() - startedAt;
-    lastAnalyzeMs = elapsed;
     inferenceSmoothMs = inferenceSmoothMs * 0.8 + elapsed * 0.2;
-    safeCaptureIntervalMs = Math.max(frameIntervalMs, Math.round(inferenceSmoothMs * 1.1));
+    /* Backpressure: never queue frames faster than the pipeline drains them,
+       otherwise latency grows without bound and the overlay lags the video. */
+    safeCaptureIntervalMs = Math.max(frameIntervalMs, Math.round(inferenceSmoothMs));
+    inferenceFps = inferenceSmoothMs > 0
+      ? Math.min(99, Math.round(1000 / Math.max(inferenceSmoothMs, safeCaptureIntervalMs)))
+      : 0;
     updateInferenceBadge();
     analyzeInFlight = false;
 
@@ -920,11 +952,11 @@ window.VideoFeed = (() => {
   }
 
   function updateInferenceBadge() {
-    const badge = document.querySelector('.ai-inference-badge');
-    if (!badge || !isVideoFeedActive) return;
+    if (!inferenceBadge) inferenceBadge = document.querySelector('.ai-inference-badge');
+    if (!inferenceBadge || !isVideoFeedActive) return;
 
-    const fps = lastAnalyzeMs > 0 ? Math.min(99, Math.round(1000 / lastAnalyzeMs)) : 0;
-    badge.textContent = `● AI Inference ~${fps} fps`;
+    const label = `● AI Inference ~${inferenceFps} fps`;
+    if (inferenceBadge.textContent !== label) inferenceBadge.textContent = label;
   }
 
   async function captureAndAnalyzeFrameMainThread() {
@@ -1047,14 +1079,69 @@ window.VideoFeed = (() => {
     reader.readAsDataURL(file);
   }
 
+  /*
+   * Feeds a fresh inference result into the tracker. The actual painting is
+   * done by renderOverlayLoop() at display rate, which is what makes the boxes
+   * glide instead of teleporting between inference results.
+   */
   function drawBoundingBoxes(detections, imageWidth, imageHeight) {
-    currentDetections = detections;
-    lastDetectionFrame = {
-      detections,
-      imageWidth,
-      imageHeight,
-    };
+    window.DetectionTracks.update(detections, imageWidth, imageHeight);
+    overlayDirty = true;
+    startOverlayLoop();
+  }
 
+  function startOverlayLoop() {
+    if (overlayRafId) return;
+    lastOverlayTs = 0;
+    overlayRafId = requestAnimationFrame(renderOverlayLoop);
+  }
+
+  function stopOverlayLoop() {
+    if (!overlayRafId) return;
+    cancelAnimationFrame(overlayRafId);
+    overlayRafId = null;
+  }
+
+  function renderOverlayLoop(timestamp) {
+    const deltaMs = lastOverlayTs ? timestamp - lastOverlayTs : 16;
+    lastOverlayTs = timestamp;
+
+    /* Tracks only age while frames are actually flowing. A paused video or a
+       single uploaded still keeps its boxes instead of fading them out. */
+    const frozen = isPaused || !isVideoFeedActive;
+    const { tracks, animating } = window.DetectionTracks.step(deltaMs, { frozen });
+
+    if (tracks.length === 0) {
+      /* Nothing left to animate — stop burning frames until new results land. */
+      overlayRafId = null;
+      clearOverlayCanvas();
+      hideHighRiskHud();
+      return;
+    }
+
+    overlayRafId = requestAnimationFrame(renderOverlayLoop);
+
+    /* Skip the repaint while every track sits still: same pixels, no work. */
+    if (!animating && !overlayDirty) return;
+
+    paintTracks(tracks);
+    overlayDirty = false;
+  }
+
+  function clearOverlayCanvas() {
+    if (!detectionCanvas) return;
+    const ctx = detectionCanvas.getContext('2d');
+    ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+  }
+
+  function hideHighRiskHud() {
+    if (!highRiskHudVisible) return;
+    highRiskHudVisible = false;
+    if (highRiskBadge) highRiskBadge.style.display = 'none';
+    if (detectionTooltip) detectionTooltip.style.display = 'none';
+  }
+
+  function paintTracks(tracks) {
     if (!detectionCanvas) return;
 
     const mediaEl = getActiveMediaElement();
@@ -1063,33 +1150,40 @@ window.VideoFeed = (() => {
     const ctx = detectionCanvas.getContext('2d');
     ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
 
+    const { offsetX, offsetY, renderW, renderH } = getContainRenderRect(
+      mediaEl,
+      detectionCanvas.width,
+      detectionCanvas.height,
+    );
+
+    const fontSize = 10;
+    ctx.font = `600 ${fontSize}px "IBM Plex Mono", JetBrains Mono, monospace`;
+    ctx.textBaseline = 'alphabetic';
+
     let topHighRisk = null;
 
-    detections.forEach((detection) => {
-      const box = getScaledBox(
-        detection.boundingBox,
-        mediaEl,
-        detectionCanvas,
-        imageWidth,
-        imageHeight,
-      );
+    tracks.forEach((track) => {
+      const box = {
+        x: offsetX + track.current.x * renderW,
+        y: offsetY + track.current.y * renderH,
+        w: track.current.width * renderW,
+        h: track.current.height * renderH,
+      };
 
-      const color = getDetectionColor(detection);
+      const color = getDetectionColor(track.detection);
+      const percent = Math.round(track.confidence * 100);
 
+      ctx.globalAlpha = track.alpha;
       ctx.strokeStyle = color;
       ctx.lineWidth = 1.5;
       ctx.strokeRect(box.x, box.y, box.w, box.h);
       drawCornerAccents(ctx, box, color);
 
-      const label = `${detection.objectClass} ${detection.confidencePercent}`;
-      const fontSize = 10;
-      ctx.font = `600 ${fontSize}px "IBM Plex Mono", JetBrains Mono, monospace`;
-
-      const textW = ctx.measureText(label).width;
+      const label = `${track.objectClass} ${percent}%`;
       const padX = 6;
       const padY = 3;
       const pillH = fontSize + padY * 2;
-      const pillW = textW + padX * 2;
+      const pillW = ctx.measureText(label).width + padX * 2;
       const pillX = Math.max(0, Math.min(box.x, detectionCanvas.width - pillW));
       const pillY = Math.max(0, box.y - pillH - 2);
 
@@ -1097,23 +1191,27 @@ window.VideoFeed = (() => {
       ctx.fillRect(pillX, pillY, pillW, pillH);
       ctx.fillStyle = '#ffffff';
       ctx.fillText(label, pillX + padX, pillY + padY + fontSize - 1);
+      ctx.globalAlpha = 1;
 
-      if (detection.riskLevel === 'HIGH') {
-        topHighRisk = { detection, x: box.x, y: box.y, w: box.w, h: box.h };
+      if (track.detection.riskLevel === 'HIGH' && track.alpha > 0.5) {
+        topHighRisk = { detection: track.detection, box, percent };
       }
     });
 
-    if (topHighRisk) {
+    if (!topHighRisk) {
+      hideHighRiskHud();
+      return;
+    }
+
+    if (!highRiskHudVisible) {
+      highRiskHudVisible = true;
       highRiskBadge.style.display = 'block';
       detectionTooltip.style.display = 'block';
-      document.getElementById('tooltipClass').textContent = topHighRisk.detection.objectClass;
-      document.getElementById('tooltipConfidence').textContent = `Confidence: ${topHighRisk.detection.confidencePercent}`;
-      detectionTooltip.style.left = `${topHighRisk.x}px`;
-      detectionTooltip.style.top = `${Math.max(0, topHighRisk.y - 48)}px`;
-    } else {
-      highRiskBadge.style.display = 'none';
-      detectionTooltip.style.display = 'none';
     }
+
+    document.getElementById('tooltipClass').textContent = topHighRisk.detection.objectClass;
+    document.getElementById('tooltipConfidence').textContent = `Confidence: ${topHighRisk.percent}%`;
+    detectionTooltip.style.transform = `translate(${Math.round(topHighRisk.box.x)}px, ${Math.round(Math.max(0, topHighRisk.box.y - 48))}px)`;
   }
 
   function takeScreenshot() {
@@ -1180,6 +1278,7 @@ window.VideoFeed = (() => {
   }
 
   function showStaticFrame(dataUrl) {
+    invalidateOverlaySize();
     staticFrame.src = dataUrl;
     staticFrame.style.display = 'block';
     liveVideo.style.display = 'none';
@@ -1188,20 +1287,11 @@ window.VideoFeed = (() => {
   }
 
   function clearDetections() {
-    currentDetections = [];
-    lastDetectionFrame = {
-      detections: [],
-      imageWidth: 1280,
-      imageHeight: 720,
-    };
-
-    if (detectionCanvas) {
-      const ctx = detectionCanvas.getContext('2d');
-      ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
-    }
-
-    highRiskBadge.style.display = 'none';
-    detectionTooltip.style.display = 'none';
+    window.DetectionTracks.clear();
+    stopOverlayLoop();
+    overlayDirty = false;
+    clearOverlayCanvas();
+    hideHighRiskHud();
   }
 
   function getCameras() {

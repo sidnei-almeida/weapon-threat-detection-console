@@ -68,9 +68,13 @@ async function analyzeBufferCore(buffer, cameraId, zone, { useLocalYolo = true }
   throw error;
 }
 
+/* Set USE_LOCAL_YOLO=0 to exercise the browser-side (worker) inference path
+   locally, which is what production on Vercel uses. */
+const useLocalYolo = process.env.USE_LOCAL_YOLO !== '0';
+
 module.exports = {
   warmUpModel,
   analyzeBufferCore,
-  clientInference: false,
-  useLocalYolo: true,
+  clientInference: !useLocalYolo,
+  useLocalYolo,
 };

@@ -1,15 +1,31 @@
+/*
+ * Browser-side YOLO client.
+ *
+ * Inference runs inside a dedicated worker (`/inference.worker.js`) so the
+ * main thread stays free for rendering — that is what keeps the console from
+ * freezing on every analyzed frame. If Workers or OffscreenCanvas are not
+ * available the module degrades to a main-thread path with the same API.
+ */
 window.YoloClient = (() => {
-  const CLASS_NAMES = ['gun', 'knife', 'person_with_mask'];
   const TARGET_SIZE = 640;
   const MODEL_URL = '/models/roadvision_yolo_fp32.onnx';
-  const CLASS_THRESHOLDS = { gun: 0.30, knife: 0.12, person_with_mask: 0.10 };
-  const DEFAULT_THRESHOLD = 0.25;
-  const NMS_IOU = 0.45;
+  const ORT_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.min.js';
+  const WASM_PATHS = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/';
 
   let active = false;
-  let sessionPromise = null;
-  let preprocessSurface = null;
-  let preprocessSurfaceCtx = null;
+  let worker = null;
+  let workerReady = false;
+  let readyPromise = null;
+  let backend = 'unknown';
+  let requestSeq = 0;
+  const pending = new Map();
+
+  /* Main-thread fallback state (only touched when the worker is unusable). */
+  let ortScriptPromise = null;
+  let fallbackSessionPromise = null;
+  let fallbackSurface = null;
+  let fallbackCtx = null;
+  let fallbackTensorData = null;
 
   function isActive() {
     return active;
@@ -19,221 +35,241 @@ window.YoloClient = (() => {
     active = true;
   }
 
-  function getClassName(classId) {
-    return CLASS_NAMES[classId] ?? `class_${classId}`;
+  function getBackend() {
+    return backend;
   }
 
-  function getThreshold(className) {
-    return CLASS_THRESHOLDS[className] ?? DEFAULT_THRESHOLD;
+  function resolveThreadCount() {
+    if (!self.crossOriginIsolated) return 1;
+    const cores = navigator.hardwareConcurrency || 2;
+    return Math.max(1, Math.min(4, cores - 1));
   }
 
-  function computeIoU(a, b) {
-    const x1 = Math.max(a.x1, b.x1);
-    const y1 = Math.max(a.y1, b.y1);
-    const x2 = Math.min(a.x2, b.x2);
-    const y2 = Math.min(a.y2, b.y2);
-    const intersection = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
-    const areaA = Math.max(0, a.x2 - a.x1) * Math.max(0, a.y2 - a.y1);
-    const areaB = Math.max(0, b.x2 - b.x1) * Math.max(0, b.y2 - b.y1);
-    const union = areaA + areaB - intersection;
-    return union > 0 ? intersection / union : 0;
+  function supportsWorkerInference() {
+    return typeof Worker !== 'undefined'
+      && typeof OffscreenCanvas !== 'undefined'
+      && typeof createImageBitmap === 'function';
   }
 
-  function applyNms(detections) {
-    const sorted = [...detections].sort((a, b) => b.confidence - a.confidence);
-    const kept = [];
-
-    sorted.forEach((detection) => {
-      const overlaps = kept.some(
-        (existing) => existing.className === detection.className
-          && computeIoU(existing, detection) > NMS_IOU,
-      );
-      if (!overlaps) kept.push(detection);
-    });
-
-    return kept;
+  function rejectAllPending(reason) {
+    pending.forEach(({ reject }) => reject(new Error(reason)));
+    pending.clear();
   }
 
-  function postprocessDetections(rawOutput) {
-    const values = rawOutput instanceof Float32Array ? rawOutput : Float32Array.from(rawOutput);
-    const detections = [];
+  function handleWorkerMessage(event) {
+    const { type } = event.data;
 
-    for (let i = 0; i + 5 < values.length; i += 6) {
-      const x1 = values[i];
-      const y1 = values[i + 1];
-      const x2 = values[i + 2];
-      const y2 = values[i + 3];
-      const confidence = values[i + 4];
-      const classId = Math.round(values[i + 5]);
-      const className = getClassName(classId);
-
-      if (confidence < getThreshold(className)) continue;
-
-      detections.push({ x1, y1, x2, y2, confidence, classId, className });
+    if (type === 'result') {
+      const entry = pending.get(event.data.requestId);
+      if (!entry) return;
+      pending.delete(event.data.requestId);
+      entry.resolve(event.data);
+      return;
     }
 
-    return applyNms(detections).sort((a, b) => b.confidence - a.confidence);
-  }
-
-  function mapObjectClass(rawClass) {
-    const normalized = String(rawClass || '').toLowerCase().trim();
-    if (['gun', 'handgun', 'pistol'].includes(normalized)) return 'Weapon: Handgun';
-    if (['rifle', 'long-gun'].includes(normalized)) return 'Weapon: Rifle';
-    if (normalized === 'knife') return 'Weapon: Knife';
-    if (['person-with-mask', 'masked-person', 'mask', 'person_with_mask'].includes(normalized)) {
-      return 'Person with Mask';
+    if (type === 'infer-error') {
+      const entry = pending.get(event.data.requestId);
+      if (!entry) return;
+      pending.delete(event.data.requestId);
+      entry.reject(new Error(event.data.message));
     }
-    if (!normalized) return 'Unknown';
-    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
 
-  function calculateRiskLevel(confidence, objectClass) {
-    if (confidence >= 0.85 && objectClass.startsWith('Weapon')) return 'HIGH';
-    if (confidence >= 0.7) return 'MEDIUM';
-    return 'LOW';
-  }
+  function startWorker() {
+    return new Promise((resolve, reject) => {
+      worker = new Worker('/inference.worker.js');
 
-  function calculateThreatScore(confidence, objectClass) {
-    let base = confidence * 100;
-    if (objectClass.startsWith('Weapon: Handgun')) base *= 1.0;
-    else if (objectClass.startsWith('Weapon: Rifle')) base = Math.min(base * 1.2, 100);
-    else if (objectClass.startsWith('Weapon: Knife')) base *= 0.85;
-    else if (objectClass === 'Person with Mask') base *= 0.6;
-    return Math.round(base);
-  }
+      const onInit = (event) => {
+        if (event.data.type === 'ready') {
+          worker.removeEventListener('message', onInit);
+          worker.addEventListener('message', handleWorkerMessage);
+          workerReady = true;
+          backend = event.data.backend;
+          resolve({ ready: true, backend: `yolo-worker:${backend}` });
+          return;
+        }
 
-  function formatDetections(rawDetections, cameraId, zone, imageWidth, imageHeight) {
-    const scaleX = imageWidth / TARGET_SIZE;
-    const scaleY = imageHeight / TARGET_SIZE;
-
-    return rawDetections.map((detection) => {
-      const x1 = detection.x1 * scaleX;
-      const y1 = detection.y1 * scaleY;
-      const x2 = detection.x2 * scaleX;
-      const y2 = detection.y2 * scaleY;
-      const confidence = Number(detection.confidence.toFixed(2));
-      const objectClass = mapObjectClass(detection.className);
-      const riskLevel = calculateRiskLevel(confidence, objectClass);
-      const threatScore = calculateThreatScore(confidence, objectClass);
-
-      return {
-        id: `EVT-${Math.floor(1000 + Math.random() * 9000)}`,
-        timestamp: new Date().toISOString(),
-        cameraId,
-        zone,
-        objectClass,
-        confidence,
-        confidencePercent: `${Math.round(confidence * 100)}%`,
-        boundingBox: {
-          x: (x1 + x2) / 2,
-          y: (y1 + y2) / 2,
-          width: x2 - x1,
-          height: y2 - y1,
-        },
-        riskLevel,
-        threatScore,
-        escalationStatus: riskLevel === 'HIGH' ? 'Needs Review' : 'Monitoring',
-        motionState: 'Walking',
-        visibility: 'Clear',
+        if (event.data.type === 'init-error') {
+          worker.removeEventListener('message', onInit);
+          reject(new Error(event.data.message));
+        }
       };
+
+      worker.addEventListener('message', onInit);
+      worker.onerror = (error) => {
+        reject(new Error(error.message || 'inference worker failed to start'));
+      };
+
+      worker.postMessage({
+        type: 'init',
+        modelUrl: MODEL_URL,
+        ortUrl: ORT_URL,
+        wasmPaths: WASM_PATHS,
+        numThreads: resolveThreadCount(),
+      });
     });
   }
 
-  function buildInputTensor(source, sourceWidth, sourceHeight) {
-    if (!preprocessSurface) {
-      preprocessSurface = document.createElement('canvas');
-      preprocessSurface.width = TARGET_SIZE;
-      preprocessSurface.height = TARGET_SIZE;
-      preprocessSurfaceCtx = preprocessSurface.getContext('2d', { willReadFrequently: true });
+  function teardownWorker(reason) {
+    rejectAllPending(reason);
+    if (worker) {
+      worker.terminate();
+      worker = null;
+    }
+    workerReady = false;
+  }
+
+  /* ---------------- main-thread fallback ---------------- */
+
+  /* ~1.5 MB of runtime that the fast (worker) path never needs on the main
+     thread, so it is only fetched when the fallback actually kicks in. */
+  function loadOrtOnMainThread() {
+    if (typeof ort !== 'undefined') return Promise.resolve();
+    if (ortScriptPromise) return ortScriptPromise;
+
+    ortScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = ORT_URL;
+      script.crossOrigin = 'anonymous';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('failed to load onnxruntime-web'));
+      document.head.appendChild(script);
+    });
+
+    return ortScriptPromise;
+  }
+
+  async function getFallbackSession() {
+    await loadOrtOnMainThread();
+
+    if (!fallbackSessionPromise) {
+      ort.env.wasm.wasmPaths = WASM_PATHS;
+      ort.env.wasm.numThreads = resolveThreadCount();
+      fallbackSessionPromise = ort.InferenceSession.create(MODEL_URL, {
+        executionProviders: ['webgpu', 'wasm'],
+      }).catch(() => ort.InferenceSession.create(MODEL_URL, {
+        executionProviders: ['wasm'],
+      }));
     }
 
-    preprocessSurfaceCtx.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
+    return fallbackSessionPromise;
+  }
 
-    const { data } = preprocessSurfaceCtx.getImageData(0, 0, TARGET_SIZE, TARGET_SIZE);
+  function fallbackBuildTensor(source, sourceWidth, sourceHeight) {
+    if (!fallbackSurface) {
+      fallbackSurface = document.createElement('canvas');
+      fallbackSurface.width = TARGET_SIZE;
+      fallbackSurface.height = TARGET_SIZE;
+      fallbackCtx = fallbackSurface.getContext('2d', { alpha: false, willReadFrequently: true });
+      fallbackTensorData = new Float32Array(3 * TARGET_SIZE * TARGET_SIZE);
+    }
+
+    fallbackCtx.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
+    const { data } = fallbackCtx.getImageData(0, 0, TARGET_SIZE, TARGET_SIZE);
     const pixelCount = TARGET_SIZE * TARGET_SIZE;
-    const tensorData = new Float32Array(3 * pixelCount);
 
-    for (let i = 0; i < pixelCount; i += 1) {
-      const offset = i * 4;
-      tensorData[i] = data[offset] / 255;
-      tensorData[pixelCount + i] = data[offset + 1] / 255;
-      tensorData[2 * pixelCount + i] = data[offset + 2] / 255;
+    for (let i = 0, offset = 0; i < pixelCount; i += 1, offset += 4) {
+      fallbackTensorData[i] = data[offset] / 255;
+      fallbackTensorData[pixelCount + i] = data[offset + 1] / 255;
+      fallbackTensorData[2 * pixelCount + i] = data[offset + 2] / 255;
     }
 
-    return {
-      tensorData,
-      inputShape: [1, 3, TARGET_SIZE, TARGET_SIZE],
-      originalWidth: sourceWidth,
-      originalHeight: sourceHeight,
-    };
+    return fallbackTensorData;
   }
 
-  async function getSession() {
-    if (typeof ort === 'undefined') {
-      throw new Error('onnxruntime-web not loaded');
-    }
-
-    if (!sessionPromise) {
-      ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/';
-      if (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) {
-        ort.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency);
-      }
-
-      sessionPromise = ort.InferenceSession.create(MODEL_URL, {
-        executionProviders: ['webgpu', 'webgl', 'wasm'],
-      }).catch((error) => {
-        console.warn('GPU inference unavailable, falling back to WASM:', error.message);
-        return ort.InferenceSession.create(MODEL_URL, {
-          executionProviders: ['wasm'],
-        });
-      });
-    }
-
-    return sessionPromise;
-  }
-
-  async function warmUp() {
-    await getSession();
-    enable();
-    return { ready: true, backend: 'yolo-client' };
-  }
-
-  async function runInference(source, imageWidth, imageHeight, cameraId, zone) {
-    const session = await getSession();
-    const preprocessed = buildInputTensor(source, imageWidth, imageHeight);
-    const inputName = session.inputNames[0];
-    const inputTensor = new ort.Tensor('float32', preprocessed.tensorData, preprocessed.inputShape);
-    const results = await session.run({ [inputName]: inputTensor });
-    const outputName = session.outputNames[0];
-    const rawDetections = postprocessDetections(results[outputName].data);
-    const detections = formatDetections(
-      rawDetections,
-      cameraId,
-      zone,
-      preprocessed.originalWidth,
-      preprocessed.originalHeight,
-    );
+  async function fallbackInference(source, imageWidth, imageHeight, cameraId, zone) {
+    const session = await getFallbackSession();
+    const data = fallbackBuildTensor(source, imageWidth, imageHeight);
+    const tensor = new ort.Tensor('float32', data, [1, 3, TARGET_SIZE, TARGET_SIZE]);
+    const results = await session.run({ [session.inputNames[0]]: tensor });
+    const raw = window.YoloPostprocess.postprocessDetections(results[session.outputNames[0]].data);
+    const detections = window.YoloPostprocess
+      .formatDetections(raw, cameraId, zone, imageWidth, imageHeight)
+      .sort((a, b) => b.confidence - a.confidence);
 
     return {
       success: true,
       detections,
       count: detections.length,
-      imageWidth: preprocessed.originalWidth,
-      imageHeight: preprocessed.originalHeight,
-      backend: 'yolo-client',
+      imageWidth,
+      imageHeight,
+      backend: 'yolo-client:main-thread',
     };
   }
 
-  async function analyzeCanvas(sourceCanvas, imageWidth, imageHeight, cameraId, zone) {
-    return runInference(sourceCanvas, imageWidth, imageHeight, cameraId, zone);
+  /* ---------------- public API ---------------- */
+
+  async function warmUp() {
+    if (readyPromise) return readyPromise;
+
+    readyPromise = (async () => {
+      if (supportsWorkerInference()) {
+        try {
+          const result = await startWorker();
+          enable();
+          return result;
+        } catch (error) {
+          console.warn('Inference worker unavailable, using main thread:', error.message);
+          teardownWorker('worker init failed');
+        }
+      }
+
+      await getFallbackSession();
+      backend = 'main-thread';
+      enable();
+      return { ready: true, backend: 'yolo-client:main-thread' };
+    })();
+
+    return readyPromise;
+  }
+
+  function inferInWorker(bitmap, imageWidth, imageHeight, cameraId, zone) {
+    return new Promise((resolve, reject) => {
+      requestSeq += 1;
+      const requestId = requestSeq;
+      pending.set(requestId, { resolve, reject });
+
+      worker.postMessage(
+        {
+          type: 'infer',
+          requestId,
+          bitmap,
+          width: imageWidth,
+          height: imageHeight,
+          cameraId,
+          zone,
+        },
+        [bitmap],
+      );
+    });
   }
 
   async function analyzeImageBitmap(imageBitmap, imageWidth, imageHeight, cameraId, zone) {
+    if (workerReady && worker) {
+      /* Ownership of the bitmap transfers to the worker, which closes it. */
+      return inferInWorker(imageBitmap, imageWidth, imageHeight, cameraId, zone);
+    }
+
     try {
-      return await runInference(imageBitmap, imageWidth, imageHeight, cameraId, zone);
+      return await fallbackInference(imageBitmap, imageWidth, imageHeight, cameraId, zone);
     } finally {
       imageBitmap.close();
     }
+  }
+
+  async function analyzeCanvas(sourceCanvas, imageWidth, imageHeight, cameraId, zone) {
+    if (workerReady && worker) {
+      const bitmap = await createImageBitmap(sourceCanvas);
+      return inferInWorker(bitmap, imageWidth, imageHeight, cameraId, zone);
+    }
+
+    return fallbackInference(sourceCanvas, imageWidth, imageHeight, cameraId, zone);
+  }
+
+  function dispose() {
+    teardownWorker('client disposed');
+    active = false;
+    readyPromise = null;
   }
 
   return {
@@ -242,5 +278,7 @@ window.YoloClient = (() => {
     warmUp,
     analyzeCanvas,
     analyzeImageBitmap,
+    getBackend,
+    dispose,
   };
 })();
