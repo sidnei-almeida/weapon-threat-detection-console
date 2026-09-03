@@ -48,6 +48,7 @@ window.VideoFeed = (() => {
   let inferenceFps = 0;
 
   let cameras = [];
+  let camerasReadyPromise = null;
   let selectedCamera = null;
   let isVideoFeedActive = false;
   let isDropdownOpen = false;
@@ -421,7 +422,7 @@ window.VideoFeed = (() => {
 
     initCameraSelector();
     initZoomSelect();
-    loadCameras();
+    camerasReadyPromise = loadCameras();
 
     startCameraBtn.onclick = startCamera;
     recordBtn.onclick = toggleRecording;
@@ -585,7 +586,7 @@ window.VideoFeed = (() => {
     }
   }
 
-  async function startVideoFeed(camera) {
+  async function startVideoFeed(camera, { silent = false } = {}) {
     try {
       liveVideo.srcObject = null;
       liveVideo.src = camera.videoUrl;
@@ -612,14 +613,37 @@ window.VideoFeed = (() => {
       inferenceFps = 0;
       framesAnalyzed = 0;
       await captureAndAnalyzeFrame();
+      return true;
     } catch (error) {
       isVideoFeedActive = false;
       liveVideo.style.display = 'none';
       videoPlaceholder.style.display = 'flex';
       setCctvMode(false);
       setCameraButtonState(false);
+
+      /* An autostart that the browser blocks is not an error worth interrupting
+         anyone over — the placeholder and Start Feed button are still there. */
+      if (silent) {
+        console.warn('Autostart skipped:', error.message);
+        return false;
+      }
+
       alert(`Could not play video: ${error.message}`);
+      return false;
     }
+  }
+
+  /*
+   * Opens the first camera as soon as the console boots, so the operator lands
+   * on a live feed instead of an empty placeholder.
+   */
+  async function autoStart() {
+    if (camerasReadyPromise) await camerasReadyPromise;
+
+    if (isVideoFeedActive || stream) return false;
+    if (!selectedCamera) return false;
+
+    return startVideoFeed(selectedCamera, { silent: true });
   }
 
   function stopCamera() {
@@ -1300,6 +1324,7 @@ window.VideoFeed = (() => {
 
   return {
     init,
+    autoStart,
     startCamera,
     stopCamera,
     captureAndAnalyzeFrame,
