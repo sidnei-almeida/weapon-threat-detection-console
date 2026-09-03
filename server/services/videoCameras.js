@@ -7,12 +7,11 @@ const MANIFEST_PATH = path.resolve(__dirname, '../data/cameras.manifest.json');
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.avi', '.mkv']);
 
 const LABEL_OVERRIDES = {
+  'demo-market-holdup-a': 'Supermarket Holdup A',
+  'demo-market-holdup-b': 'Supermarket Holdup B',
+  'demo-market-holdup-c': 'Supermarket Holdup C',
   'demo-test-dataset': 'Demo Test Dataset',
-  'demo-zone-b': 'Demo Zone B',
-  'demo-zone-c': 'Demo Zone C',
-  'demo-zone-d': 'Demo Zone D',
   'demo-zone-e': 'Demo Zone E',
-  'demo-zone-f': 'Demo Zone F',
 };
 
 function resolveVideosDir() {
