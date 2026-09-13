@@ -1,5 +1,5 @@
 /**
- * @typedef {'handgun' | 'knife' | 'masked_person'} ObjectClassKey
+ * @typedef {'gun' | 'knife' | 'masked_person'} ObjectClassKey
  * @typedef {'pending' | 'escalated' | 'reviewed' | 'false_alarm'} EventStatus
  * @typedef {'escalated' | 'reviewed' | 'false_alarm'} EventResolution
  * @typedef {'Low' | 'Medium' | 'High'} ViolenceLevel
@@ -25,13 +25,13 @@
 
 window.ThreatEventHelpers = (() => {
   const CLASS_LABELS = {
-    handgun: 'Weapon: Handgun',
+    gun: 'Weapon: Gun',
     knife: 'Weapon: Knife',
     masked_person: 'Masked Person',
   };
 
   const CLASS_ICONS = {
-    handgun: 'shield-alert',
+    gun: 'shield-alert',
     knife: 'scissors',
     masked_person: 'user-x',
   };
@@ -45,8 +45,8 @@ window.ThreatEventHelpers = (() => {
 
   function mapDisplayClassToKey(displayClass) {
     const normalized = String(displayClass || '').toLowerCase();
-    if (normalized.includes('handgun') || normalized === 'weapon: handgun' || normalized === 'gun') {
-      return 'handgun';
+    if (normalized.includes('gun') || normalized === 'weapon: gun') {
+      return 'gun';
     }
     if (normalized.includes('knife')) return 'knife';
     if (normalized.includes('mask')) return 'masked_person';
@@ -54,7 +54,7 @@ window.ThreatEventHelpers = (() => {
   }
 
   function isThreatClassKey(key) {
-    return key === 'handgun' || key === 'knife' || key === 'masked_person';
+    return key === 'gun' || key === 'knife' || key === 'masked_person';
   }
 
   function getClassLabel(key) {
