@@ -58,7 +58,6 @@ window.VideoFeed = (() => {
   let staticFrame;
   let videoPlaceholder;
   let detectionCanvas;
-  let detectionTooltip;
   let highRiskBadge;
   let recordBtn;
   let playPauseBtn;
@@ -410,7 +409,6 @@ window.VideoFeed = (() => {
     staticFrame = document.getElementById('staticFrame');
     videoPlaceholder = document.getElementById('videoPlaceholder');
     detectionCanvas = document.getElementById('detectionCanvas');
-    detectionTooltip = document.getElementById('detectionTooltip');
     highRiskBadge = document.getElementById('highRiskBadge');
     recordBtn = document.getElementById('recordBtn');
     playPauseBtn = document.getElementById('playPauseBtn');
@@ -1163,7 +1161,49 @@ window.VideoFeed = (() => {
     if (!highRiskHudVisible) return;
     highRiskHudVisible = false;
     if (highRiskBadge) highRiskBadge.style.display = 'none';
-    if (detectionTooltip) detectionTooltip.style.display = 'none';
+  }
+
+  /*
+   * One tag per box: class name in bold, confidence in a lighter weight,
+   * attached flush to the box's top-left corner. Flips inside the box when
+   * there is no room above it.
+   */
+  function drawDetectionLabel(ctx, box, color, className, percent) {
+    const fontSize = 10;
+    const padX = 6;
+    const gap = 6;
+    const tagH = 18;
+    const radius = 3;
+    const baseline = fontSize - 1 + (tagH - fontSize) / 2;
+    const classFont = `600 ${fontSize}px "IBM Plex Mono", JetBrains Mono, monospace`;
+    const valueFont = `400 ${fontSize}px "IBM Plex Mono", JetBrains Mono, monospace`;
+    const valueText = `${percent}%`;
+
+    ctx.font = classFont;
+    const classW = ctx.measureText(className).width;
+    ctx.font = valueFont;
+    const valueW = ctx.measureText(valueText).width;
+    const tagW = Math.ceil(padX + classW + gap + valueW + padX);
+
+    const outside = box.y - tagH >= 0;
+    const tagX = Math.max(0, Math.min(box.x, detectionCanvas.width - tagW));
+    const tagY = outside ? box.y - tagH : box.y;
+
+    /* Round only the corners that are not glued to the box edge. */
+    const radii = outside ? [radius, radius, 0, 0] : [0, 0, radius, radius];
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(tagX, tagY, tagW, tagH, radii);
+    else ctx.rect(tagX, tagY, tagW, tagH);
+    ctx.fill();
+
+    const textY = tagY + baseline;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = classFont;
+    ctx.fillText(className, tagX + padX, textY);
+    ctx.globalAlpha *= 0.8;
+    ctx.font = valueFont;
+    ctx.fillText(valueText, tagX + padX + classW + gap, textY);
   }
 
   function paintTracks(tracks) {
@@ -1181,8 +1221,6 @@ window.VideoFeed = (() => {
       detectionCanvas.height,
     );
 
-    const fontSize = 10;
-    ctx.font = `600 ${fontSize}px "IBM Plex Mono", JetBrains Mono, monospace`;
     ctx.textBaseline = 'alphabetic';
 
     let topHighRisk = null;
@@ -1204,18 +1242,7 @@ window.VideoFeed = (() => {
       ctx.strokeRect(box.x, box.y, box.w, box.h);
       drawCornerAccents(ctx, box, color);
 
-      const label = `${track.objectClass} ${percent}%`;
-      const padX = 6;
-      const padY = 3;
-      const pillH = fontSize + padY * 2;
-      const pillW = ctx.measureText(label).width + padX * 2;
-      const pillX = Math.max(0, Math.min(box.x, detectionCanvas.width - pillW));
-      const pillY = Math.max(0, box.y - pillH - 2);
-
-      ctx.fillStyle = color;
-      ctx.fillRect(pillX, pillY, pillW, pillH);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(label, pillX + padX, pillY + padY + fontSize - 1);
+      drawDetectionLabel(ctx, box, color, track.objectClass, percent);
       ctx.globalAlpha = 1;
 
       const riskLevel = track.detection.riskLevel;
@@ -1232,14 +1259,10 @@ window.VideoFeed = (() => {
     if (!highRiskHudVisible) {
       highRiskHudVisible = true;
       highRiskBadge.style.display = 'block';
-      detectionTooltip.style.display = 'block';
     }
 
     const badgeLabel = `${topHighRisk.detection.riskLevel} RISK`;
     if (highRiskBadge.textContent !== badgeLabel) highRiskBadge.textContent = badgeLabel;
-    document.getElementById('tooltipClass').textContent = topHighRisk.detection.objectClass;
-    document.getElementById('tooltipConfidence').textContent = `Confidence: ${topHighRisk.percent}%`;
-    detectionTooltip.style.transform = `translate(${Math.round(topHighRisk.box.x)}px, ${Math.round(Math.max(0, topHighRisk.box.y - 48))}px)`;
   }
 
   function takeScreenshot() {
