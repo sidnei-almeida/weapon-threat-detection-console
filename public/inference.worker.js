@@ -91,6 +91,7 @@ async function init(payload) {
     numThreads,
   } = payload || {};
 
+  self.importScripts('/js/yolo/threatModel.js');
   self.importScripts('/js/yolo/postprocess.js');
   self.importScripts(ortUrl);
 

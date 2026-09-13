@@ -3,6 +3,7 @@
  *
  * Loaded both by the page (<script>) and by the inference worker
  * (importScripts), so it must not touch `window` or the DOM.
+ * Requires threatModel.js to be loaded first.
  */
 (function attachYoloPostprocess(scope) {
   const CLASS_NAMES = ['gun', 'knife', 'person_with_mask'];
@@ -82,21 +83,6 @@
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
 
-  function calculateRiskLevel(confidence, objectClass) {
-    if (confidence >= 0.85 && objectClass.startsWith('Weapon')) return 'HIGH';
-    if (confidence >= 0.7) return 'MEDIUM';
-    return 'LOW';
-  }
-
-  function calculateThreatScore(confidence, objectClass) {
-    let base = confidence * 100;
-    if (objectClass.startsWith('Weapon: Gun')) base *= 1.0;
-    else if (objectClass.startsWith('Weapon: Rifle')) base = Math.min(base * 1.2, 100);
-    else if (objectClass.startsWith('Weapon: Knife')) base *= 0.85;
-    else if (objectClass === 'Person with Mask') base *= 0.6;
-    return Math.round(base);
-  }
-
   function formatDetections(rawDetections, cameraId, zone, imageWidth, imageHeight) {
     const scaleX = imageWidth / TARGET_SIZE;
     const scaleY = imageHeight / TARGET_SIZE;
@@ -109,8 +95,11 @@
       const y2 = detection.y2 * scaleY;
       const confidence = Number(detection.confidence.toFixed(2));
       const objectClass = mapObjectClass(detection.className);
-      const riskLevel = calculateRiskLevel(confidence, objectClass);
-      const threatScore = calculateThreatScore(confidence, objectClass);
+      /* Per-detection risk only; the dashboard refines it with scene context. */
+      const { score: threatScore, level: riskLevel } = scope.ThreatModel.assessDetection(
+        detection.className,
+        confidence,
+      );
 
       return {
         id: `EVT-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -128,7 +117,7 @@
         },
         riskLevel,
         threatScore,
-        escalationStatus: riskLevel === 'HIGH' ? 'Needs Review' : 'Monitoring',
+        escalationStatus: scope.ThreatModel.isAtLeast(riskLevel, 'HIGH') ? 'Needs Review' : 'Monitoring',
         motionState: 'Walking',
         visibility: 'Clear',
       };

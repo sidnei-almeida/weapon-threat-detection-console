@@ -266,11 +266,11 @@
         <label class="section-label section-label-accent">TARGET SCORE</label>
         <div class="target-score-display">
           <div class="target-score-header">
-            <span class="target-score-badge target-score-badge--low" id="targetScoreLevel">Low</span>
-            <span class="target-score-num target-score-num--low" id="targetScoreNum">0</span>
+            <span class="target-score-badge target-score-badge--none" id="targetScoreLevel">Clear</span>
+            <span class="target-score-num target-score-num--none" id="targetScoreNum">0</span>
           </div>
           <div class="target-score-bar-track">
-            <div class="target-score-bar-fill target-score-bar-fill--low" id="targetScoreBarFill" style="width: 0%"></div>
+            <div class="target-score-bar-fill target-score-bar-fill--none" id="targetScoreBarFill" style="width: 0%"></div>
           </div>
           <div class="target-score-micro-stats">
             <div class="target-score-micro-stat">
@@ -656,6 +656,7 @@
 
   <script src="js/charts.js"></script>
   <script src="js/cctvOverlay.js"></script>
+  <script src="js/yolo/threatModel.js"></script>
   <script src="js/yolo/postprocess.js"></script>
   <script src="js/detectionTracks.js"></script>
   <script src="js/yoloClient.js"></script>

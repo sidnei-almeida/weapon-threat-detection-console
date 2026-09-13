@@ -51,7 +51,7 @@ function createApp(backend) {
     for (const detection of processedDetections) {
       threatEngine.addEvent(detection);
 
-      if (detection.riskLevel === 'HIGH') {
+      if (detection.riskLevel === 'HIGH' || detection.riskLevel === 'CRITICAL') {
         logThreat(detection.id, detection.objectClass, detection.confidence, zone);
         ioEmitter.emit('threat-alert', detection);
       }

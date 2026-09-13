@@ -19,6 +19,9 @@ window.Dashboard = (() => {
   let targetScoreSum = 0;
   let targetScorePeakToday = 0;
 
+  const sceneTracker = window.ThreatModel.createSceneTracker();
+  let lastSceneScore = 0;
+
   function updateTargetScoreStats(score) {
     targetScoreEventCount += 1;
     targetScoreSum += score;
@@ -62,8 +65,8 @@ window.Dashboard = (() => {
     const list = document.getElementById('detectionHistoryList');
     if (!list) return;
 
-    const isThreat = detection.riskLevel === 'HIGH' || detection.riskLevel === 'MEDIUM';
-    const label = isThreat ? `${detection.objectClass} Detected` : 'No Detection';
+    const isThreat = window.ThreatModel.isAtLeast(detection.riskLevel, 'MEDIUM');
+    const label = `${detection.objectClass} Detected`;
     const dotClass = isThreat ? 'detection-history-dot--threat' : 'detection-history-dot--clear';
 
     const row = document.createElement('div');
@@ -110,15 +113,12 @@ window.Dashboard = (() => {
   }
 
   function getTargetScoreTier(score) {
-    if (score >= 75) return 'high';
-    if (score >= 50) return 'medium';
-    return 'low';
+    return window.ThreatModel.levelForScore(score).toLowerCase();
   }
 
   function getTargetScoreLabel(tier) {
-    if (tier === 'high') return 'High';
-    if (tier === 'medium') return 'Medium';
-    return 'Low';
+    if (tier === 'none') return 'Clear';
+    return tier.charAt(0).toUpperCase() + tier.slice(1);
   }
 
   function animateTargetScoreTo(targetScore) {
@@ -253,11 +253,50 @@ window.Dashboard = (() => {
     return '';
   }
 
+  /*
+   * Video frames feed a stateful tracker so persistence and context shape the
+   * risk; uploaded stills are judged on their own.
+   */
+  function assessScene(detections, still) {
+    if (still) {
+      sceneTracker.reset();
+      return window.ThreatModel.assessFrame(detections);
+    }
+    return sceneTracker.update(detections, performance.now());
+  }
+
+  function resetThreatScene() {
+    sceneTracker.reset();
+    lastSceneScore = 0;
+    animateTargetScoreTo(0);
+  }
+
   function handleDetections(data) {
     const detections = data.detections || [];
-    if (detections.length === 0) return;
+    const assessment = assessScene(detections, data.still);
+
+    if (detections.length === 0) {
+      /* Nothing in frame: let the score decay as the evidence fades. */
+      if (assessment.score !== lastSceneScore) {
+        lastSceneScore = assessment.score;
+        animateTargetScoreTo(assessment.score);
+      }
+      return;
+    }
+    lastSceneScore = assessment.score;
 
     const topDetection = [...detections].sort((a, b) => b.threatScore - a.threatScore)[0];
+    const escalationStatus = window.ThreatModel.isAtLeast(assessment.level, 'HIGH')
+      ? 'Needs Review'
+      : 'Monitoring';
+
+    /* The event is the scene: every box in it carries the scene risk. */
+    detections.forEach((detection) => {
+      detection.riskLevel = assessment.level;
+      detection.threatScore = assessment.score;
+      detection.escalationStatus = escalationStatus;
+    });
+    topDetection.threatFactors = assessment.factors;
 
     updateThreatContext(topDetection);
     updateEventPanel(topDetection);
@@ -344,9 +383,11 @@ window.Dashboard = (() => {
     setCtxValue('ctxZone', detection.zone);
     setCtxValue('ctxVisibility', detection.visibility);
 
-    const violenceLabel =
-      detection.riskLevel === 'HIGH' ? 'Elevated' :
-      detection.riskLevel === 'MEDIUM' ? 'Moderate' : 'Low';
+    const violenceLabel = {
+      CRITICAL: 'Critical',
+      HIGH: 'Elevated',
+      MEDIUM: 'Moderate',
+    }[detection.riskLevel] || 'Low';
     setCtxValue('ctxViolence', violenceLabel);
 
     const secondsInFrame = Math.max(0, (Date.now() - new Date(detection.timestamp).getTime()) / 1000);
@@ -451,9 +492,10 @@ window.Dashboard = (() => {
     if (!bodyEl) return;
 
     const { recommendedAction } = getActionDetails(detection.riskLevel);
+    const factors = detection.threatFactors?.length ? ` ${detection.threatFactors.join('. ')}.` : '';
     const threatAssessment =
       `Potential ${detection.riskLevel.toLowerCase()} risk: ${detection.objectClass} detected in ${detection.zone}. ` +
-      `Threat score ${detection.threatScore}/100. Subject may still be on premises.`;
+      `Threat score ${detection.threatScore}/100.${factors}`;
     const objectDetails =
       `${detection.objectClass} identified with ${detection.confidencePercent} confidence. ` +
       `Zone: ${detection.zone}. Detection logged at ${formatDetectionTime(detection.timestamp)}.`;
@@ -595,7 +637,7 @@ window.Dashboard = (() => {
     await delay(400);
 
     window.ThreatCharts.reset();
-    animateTargetScoreTo(0);
+    resetThreatScene();
     resetTargetScoreStats();
     resetEventPanel();
 
@@ -613,6 +655,12 @@ window.Dashboard = (() => {
   }
 
   function getActionDetails(riskLevel) {
+    if (riskLevel === 'CRITICAL') {
+      return {
+        actionType: 'Escalate Now',
+        recommendedAction: 'Armed threat with escalating context. Alert security and emergency services immediately and start lockdown protocol.',
+      };
+    }
     if (riskLevel === 'HIGH') {
       return {
         actionType: 'Review Immediately',
@@ -884,7 +932,7 @@ window.Dashboard = (() => {
               zone,
             );
             document.getElementById('uploadModal').style.display = 'none';
-            handleDetections(data);
+            handleDetections({ ...data, still: true });
           };
           img.src = reader.result;
           return;
@@ -902,7 +950,7 @@ window.Dashboard = (() => {
         const data = await response.json();
 
         document.getElementById('uploadModal').style.display = 'none';
-        handleDetections(data);
+        handleDetections({ ...data, still: true });
       };
       reader.readAsDataURL(uploadedFile);
     } catch (error) {
@@ -949,6 +997,7 @@ window.Dashboard = (() => {
   return {
     init,
     handleDetections,
+    resetThreatScene,
     showThreatAlert,
     updateThreatContext,
     updateEventPanel,

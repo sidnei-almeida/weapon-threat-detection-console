@@ -103,18 +103,29 @@ Tokens em `public/css/dashboard.css`.
 
 ## Severidade e classes
 
-| Classe | Peso no threat score |
-|--------|----------------------|
-| `gun` | 1.00 |
-| `knife` | 0.85 |
-| `person_with_mask` | 0.60 |
+Risco é regra de negócio sobre a saída do modelo, definida em `public/js/yolo/threatModel.js` (usada pelo dashboard, worker, servidor e scripts). A classe define a escala; a confiança só move o score dentro da faixa da classe — uma arma nunca cai para `low`.
 
-| Nível | Regra resumida |
-|-------|----------------|
-| **critical** | 2+ armas com score ≥ 0.75, ou score ≥ 0.85 com 4+ detecções |
-| **high** | score ≥ 0.75, ou 3+ armas com score ≥ 0.55 |
-| **medium** | score ≥ 0.45, ou 3+ detecções com score ≥ 0.35 |
-| **low** | demais detecções |
+| Classe | Score (conf. mínima → conf. alta) |
+|--------|-----------------------------------|
+| `gun` | 45 → 80 |
+| `knife` | 40 → 68 |
+| `person_with_mask` | 15 → 35 |
+
+Contexto que eleva o score (score de cena, 0–100):
+
+| Fator | Efeito |
+|-------|--------|
+| Persistência | Arma vista em frames consecutivos acumula evidência e aumenta a certeza efetiva; picos de 1 frame decaem em ~3 s |
+| Arma + pessoa mascarada | até +15 |
+| Múltiplas armas | +10 |
+| Arma em cena > 3 s | até +10, proporcional à confiança do modelo |
+
+| Nível | Score |
+|-------|-------|
+| **critical** | ≥ 85 |
+| **high** | 65–84 |
+| **medium** | 40–64 |
+| **low** | 1–39 |
 | **none** | sem detecções |
 
 ---
