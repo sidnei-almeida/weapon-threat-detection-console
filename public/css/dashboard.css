@@ -2228,28 +2228,6 @@ select optgroup {
   z-index: 20;
 }
 
-.detection-tooltip {
-  position: absolute;
-  /* Positioned via `transform` from the overlay render loop: compositor-only,
-     so following a moving box never triggers layout. */
-  left: 0;
-  top: 0;
-  will-change: transform;
-  background: rgba(220,38,38,0.95);
-  color: white;
-  padding: 5px 9px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  pointer-events: none;
-  z-index: 20;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255,255,255,0.1);
-}
-
-.tooltip-class { font-weight: 700; font-size: 11px; }
-.tooltip-confidence { font-size: 10px; opacity: 0.85; }
-
 .high-risk-badge {
   position: absolute;
   bottom: 12px;
