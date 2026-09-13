@@ -230,7 +230,7 @@ window.IncidentQueue = (() => {
           </select>
           <select class="iq-filter-select" id="iqFilterClass">
             <option value="all">Todas as classes</option>
-            <option value="handgun" ${filters.objectClass === 'handgun' ? 'selected' : ''}>Handgun</option>
+            <option value="gun" ${filters.objectClass === 'gun' ? 'selected' : ''}>Gun</option>
             <option value="knife" ${filters.objectClass === 'knife' ? 'selected' : ''}>Knife</option>
             <option value="masked_person" ${filters.objectClass === 'masked_person' ? 'selected' : ''}>Masked Person</option>
           </select>

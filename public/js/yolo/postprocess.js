@@ -72,7 +72,7 @@
 
   function mapObjectClass(rawClass) {
     const normalized = String(rawClass || '').toLowerCase().trim();
-    if (['gun', 'handgun', 'pistol'].includes(normalized)) return 'Weapon: Handgun';
+    if (['gun', 'handgun', 'pistol'].includes(normalized)) return 'Weapon: Gun';
     if (['rifle', 'long-gun'].includes(normalized)) return 'Weapon: Rifle';
     if (normalized === 'knife') return 'Weapon: Knife';
     if (['person-with-mask', 'masked-person', 'mask', 'person_with_mask'].includes(normalized)) {
@@ -90,7 +90,7 @@
 
   function calculateThreatScore(confidence, objectClass) {
     let base = confidence * 100;
-    if (objectClass.startsWith('Weapon: Handgun')) base *= 1.0;
+    if (objectClass.startsWith('Weapon: Gun')) base *= 1.0;
     else if (objectClass.startsWith('Weapon: Rifle')) base = Math.min(base * 1.2, 100);
     else if (objectClass.startsWith('Weapon: Knife')) base *= 0.85;
     else if (objectClass === 'Person with Mask') base *= 0.6;

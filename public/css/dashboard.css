@@ -3980,7 +3980,7 @@ body.tn-modal-open {
   flex-shrink: 0;
 }
 
-.iq-class-icon--handgun { background: #2a1515; color: #ff6b6b; }
+.iq-class-icon--gun { background: #2a1515; color: #ff6b6b; }
 .iq-class-icon--knife { background: #2a2015; color: #e0a030; }
 .iq-class-icon--masked_person { background: #1a1a2a; color: #9b8dff; }
 

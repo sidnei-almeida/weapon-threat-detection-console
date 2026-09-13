@@ -45,7 +45,7 @@ window.Analytics = (() => {
       ? events.reduce((sum, e) => sum + e.confidence, 0) / total
       : 0;
 
-    const classCounts = { handgun: 0, knife: 0, masked_person: 0 };
+    const classCounts = { gun: 0, knife: 0, masked_person: 0 };
     events.forEach((e) => {
       if (classCounts[e.objectClass] != null) classCounts[e.objectClass] += 1;
     });
@@ -83,7 +83,7 @@ window.Analytics = (() => {
   }
 
   function computeClassTable(events) {
-    const classes = ['handgun', 'knife', 'masked_person'];
+    const classes = ['gun', 'knife', 'masked_person'];
     return classes.map((cls) => {
       const subset = events.filter((e) => e.objectClass === cls);
       const total = subset.length;
@@ -167,7 +167,7 @@ window.Analytics = (() => {
       : '<span class="an-kpi-ok">Dentro do esperado</span>';
 
     const classBars = renderHorizontalBars([
-      { label: 'Handgun', value: metrics.classCounts.handgun, color: '#E24B4A' },
+      { label: 'Gun', value: metrics.classCounts.gun, color: '#E24B4A' },
       { label: 'Knife', value: metrics.classCounts.knife, color: '#EF9F27' },
       { label: 'Masked', value: metrics.classCounts.masked_person, color: '#7F77DD' },
     ]);

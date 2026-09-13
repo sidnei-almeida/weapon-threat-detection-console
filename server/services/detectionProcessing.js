@@ -7,7 +7,7 @@ function mapObjectClass(rawClass) {
   const normalized = String(rawClass || '').toLowerCase().trim();
 
   if (['gun', 'handgun', 'pistol'].includes(normalized)) {
-    return 'Weapon: Handgun';
+    return 'Weapon: Gun';
   }
 
   if (['rifle', 'long-gun'].includes(normalized)) {
@@ -44,7 +44,7 @@ function calculateRiskLevel(confidence, objectClass) {
 function calculateThreatScore(confidence, objectClass) {
   let base = confidence * 100;
 
-  if (objectClass.startsWith('Weapon: Handgun')) {
+  if (objectClass.startsWith('Weapon: Gun')) {
     base *= 1.0;
   } else if (objectClass.startsWith('Weapon: Rifle')) {
     base = Math.min(base * 1.2, 100);
