@@ -2,7 +2,7 @@
  * @typedef {'gun' | 'knife' | 'masked_person'} ObjectClassKey
  * @typedef {'pending' | 'escalated' | 'reviewed' | 'false_alarm'} EventStatus
  * @typedef {'escalated' | 'reviewed' | 'false_alarm'} EventResolution
- * @typedef {'Low' | 'Medium' | 'High'} ViolenceLevel
+ * @typedef {'Low' | 'Medium' | 'High' | 'Critical'} ViolenceLevel
  *
  * @typedef {Object} ThreatEvent
  * @property {string} id
@@ -66,6 +66,7 @@ window.ThreatEventHelpers = (() => {
   }
 
   function mapViolenceLevel(riskLevel) {
+    if (riskLevel === 'CRITICAL') return 'Critical';
     if (riskLevel === 'HIGH') return 'High';
     if (riskLevel === 'MEDIUM') return 'Medium';
     return 'Low';

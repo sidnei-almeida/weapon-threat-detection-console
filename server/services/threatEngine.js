@@ -47,6 +47,7 @@ function getThreatTrend(cameraId) {
 function getStats() {
   return {
     totalEvents: events.length,
+    criticalRiskCount: events.filter((event) => event.riskLevel === 'CRITICAL').length,
     highRiskCount: events.filter((event) => event.riskLevel === 'HIGH').length,
     mediumRiskCount: events.filter((event) => event.riskLevel === 'MEDIUM').length,
     lowRiskCount: events.filter((event) => event.riskLevel === 'LOW').length,

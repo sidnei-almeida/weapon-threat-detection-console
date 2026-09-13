@@ -1,3 +1,5 @@
+const ThreatModel = require('../../public/js/yolo/threatModel');
+
 function generateEventId() {
   const digits = Math.floor(1000 + Math.random() * 9000);
   return `EVT-${digits}`;
@@ -29,42 +31,13 @@ function mapObjectClass(rawClass) {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
-function calculateRiskLevel(confidence, objectClass) {
-  if (confidence >= 0.85 && objectClass.startsWith('Weapon')) {
-    return 'HIGH';
-  }
-
-  if (confidence >= 0.7) {
-    return 'MEDIUM';
-  }
-
-  return 'LOW';
-}
-
-function calculateThreatScore(confidence, objectClass) {
-  let base = confidence * 100;
-
-  if (objectClass.startsWith('Weapon: Gun')) {
-    base *= 1.0;
-  } else if (objectClass.startsWith('Weapon: Rifle')) {
-    base = Math.min(base * 1.2, 100);
-  } else if (objectClass.startsWith('Weapon: Knife')) {
-    base *= 0.85;
-  } else if (objectClass === 'Person with Mask') {
-    base *= 0.6;
-  }
-
-  return Math.round(base);
-}
-
 function processDetections(roboflowResponse, cameraId, zone) {
   const predictions = roboflowResponse?.predictions || [];
 
   return predictions.map((prediction) => {
     const confidence = Number(Number(prediction.confidence).toFixed(2));
     const objectClass = mapObjectClass(prediction.class);
-    const riskLevel = calculateRiskLevel(confidence, objectClass);
-    const threatScore = calculateThreatScore(confidence, objectClass);
+    const { score: threatScore, level: riskLevel } = ThreatModel.assessDetection(prediction.class, confidence);
 
     return {
       id: generateEventId(),
@@ -82,7 +55,7 @@ function processDetections(roboflowResponse, cameraId, zone) {
       },
       riskLevel,
       threatScore,
-      escalationStatus: riskLevel === 'HIGH' ? 'Needs Review' : 'Monitoring',
+      escalationStatus: ThreatModel.isAtLeast(riskLevel, 'HIGH') ? 'Needs Review' : 'Monitoring',
       motionState: 'Walking',
       visibility: 'Clear',
     };
@@ -92,6 +65,4 @@ function processDetections(roboflowResponse, cameraId, zone) {
 module.exports = {
   processDetections,
   mapObjectClass,
-  calculateRiskLevel,
-  calculateThreatScore,
 };

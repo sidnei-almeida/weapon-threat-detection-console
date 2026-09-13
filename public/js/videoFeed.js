@@ -301,6 +301,7 @@ window.VideoFeed = (() => {
     if (!camera) return;
 
     const wasActive = isVideoFeedActive || Boolean(stream);
+    if (selectedCamera?.id !== camera.id) window.Dashboard?.resetThreatScene?.();
     selectedCamera = camera;
     updateCameraUiFields(camera);
     renderCameraDropdown();
@@ -1075,7 +1076,7 @@ window.VideoFeed = (() => {
               cameraId,
               zone,
             );
-            window.Dashboard?.handleDetections(data);
+            window.Dashboard?.handleDetections({ ...data, still: true });
           };
           img.src = reader.result;
           return;
@@ -1093,7 +1094,7 @@ window.VideoFeed = (() => {
 
         const data = await response.json();
         if (window.Dashboard) {
-          window.Dashboard.handleDetections(data);
+          window.Dashboard.handleDetections({ ...data, still: true });
         }
       } catch (error) {
         console.error('Upload analysis failed:', error.message);
@@ -1217,7 +1218,8 @@ window.VideoFeed = (() => {
       ctx.fillText(label, pillX + padX, pillY + padY + fontSize - 1);
       ctx.globalAlpha = 1;
 
-      if (track.detection.riskLevel === 'HIGH' && track.alpha > 0.5) {
+      const riskLevel = track.detection.riskLevel;
+      if ((riskLevel === 'HIGH' || riskLevel === 'CRITICAL') && track.alpha > 0.5) {
         topHighRisk = { detection: track.detection, box, percent };
       }
     });
@@ -1233,6 +1235,8 @@ window.VideoFeed = (() => {
       detectionTooltip.style.display = 'block';
     }
 
+    const badgeLabel = `${topHighRisk.detection.riskLevel} RISK`;
+    if (highRiskBadge.textContent !== badgeLabel) highRiskBadge.textContent = badgeLabel;
     document.getElementById('tooltipClass').textContent = topHighRisk.detection.objectClass;
     document.getElementById('tooltipConfidence').textContent = `Confidence: ${topHighRisk.percent}%`;
     detectionTooltip.style.transform = `translate(${Math.round(topHighRisk.box.x)}px, ${Math.round(Math.max(0, topHighRisk.box.y - 48))}px)`;
