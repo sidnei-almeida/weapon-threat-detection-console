@@ -623,7 +623,9 @@
   }
 
   .mob-panel[data-panel="ai"] .event-row--multiline {
-    align-items: flex-start !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
     min-height: unset !important;
     padding-top: 10px !important;
     padding-bottom: 10px !important;
@@ -673,8 +675,10 @@
   .mob-panel[data-panel="ai"] .event-row--multiline .event-val,
   .mob-panel[data-panel="ai"] .event-row--multiline .threat-field-value {
     white-space: normal !important;
-    line-height: 1.4 !important;
-    max-width: 48% !important;
+    line-height: 1.45 !important;
+    max-width: none !important;
+    text-align: left !important;
+    padding-left: 22px !important;
   }
 
   .mob-panel[data-panel="ai"] .escalate-btn,
